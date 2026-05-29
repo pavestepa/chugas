@@ -1,4 +1,15 @@
 services:
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: irlgram-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
   mongodb:
     image: mongo:7
     container_name: irlgram-mongodb

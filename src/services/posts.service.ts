@@ -74,9 +74,7 @@ type CreatePostResult =
   | { error: "community_required" }
   | { error: "forbidden" };
 
-type MapPointsResult =
-  | { points: MapPoint[] }
-  | { error: "viewport_required" };
+type MapPointsResult = { points: MapPoint[] } | { error: "viewport_required" };
 
 interface NearbyReadableResult {
   posts: ReadablePost[];
@@ -162,7 +160,10 @@ function readablePost(post: ReturnType<typeof toPostJson>): ReadablePost {
   return post;
 }
 
-async function canAccessPost(post: PostRecord, userId: string): Promise<boolean> {
+async function canAccessPost(
+  post: PostRecord,
+  userId: string
+): Promise<boolean> {
   if (post.visibility === "public") {
     return !(await BlocksService.isBlockedBetween(
       post.authorId.toString(),
@@ -275,11 +276,8 @@ export const PostsService: PostsServiceContract = {
     return toPostJson(post);
   },
 
-  findReadableById: async (
-    id: string,
-    userId: string,
-    location: Coordinates
-  ) => findReadablePostById(id, userId, location),
+  findReadableById: async (id: string, userId: string, location: Coordinates) =>
+    findReadablePostById(id, userId, location),
 
   delete: async (id: string, authorId: string) => {
     const post = await PostModel.findOne({ _id: id, authorId }).select("_id");
