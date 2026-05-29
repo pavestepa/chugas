@@ -1,0 +1,682 @@
+{
+  "info": {
+    "name": "irlgram API",
+    "description": "Postman collection for the irlgram Elysia API. Import together with `irlgram Local` environment.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": []
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Root",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": "{{baseUrl}}/"
+          }
+        },
+        {
+          "name": "Swagger UI",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": "{{baseUrl}}/swagger"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Start Register",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.sessionId) pm.environment.set('sessionId', json.sessionId);",
+                  "if (json.code) pm.environment.set('authCode', json.code);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/register"
+          }
+        },
+        {
+          "name": "Start Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.sessionId) pm.environment.set('sessionId', json.sessionId);",
+                  "if (json.code) pm.environment.set('authCode', json.code);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          }
+        },
+        {
+          "name": "Telegram Verify (internal)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Bot-Secret", "value": "{{authBotSecret}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"{{authCode}}\",\n  \"telegramId\": \"{{telegramId}}\",\n  \"telegramUsername\": \"{{telegramUsername}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/telegram/verify"
+          }
+        },
+        {
+          "name": "Poll Auth Session",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.accessToken) pm.environment.set('accessToken', json.accessToken);",
+                  "if (json.refreshToken) pm.environment.set('refreshToken', json.refreshToken);",
+                  "if (json.user?._id) pm.environment.set('userId', json.user._id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": "{{baseUrl}}/auth/session/{{sessionId}}"
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.accessToken) pm.environment.set('accessToken', json.accessToken);",
+                  "if (json.refreshToken) pm.environment.set('refreshToken', json.refreshToken);",
+                  "if (json.user?._id) pm.environment.set('userId', json.user._id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/refresh"
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/logout"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Search Users",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": "{{baseUrl}}/users/search?q={{username}}"
+          }
+        },
+        {
+          "name": "Get User By Id",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": "{{baseUrl}}/users/{{targetUserId}}"
+          }
+        },
+        {
+          "name": "Update Me",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bio\": \"Hello from Postman\",\n  \"avatarUrl\": \"https://example.com/avatar.png\"\n}"
+            },
+            "url": "{{baseUrl}}/users/me"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Posts",
+      "item": [
+        {
+          "name": "Create Public Post",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json._id) pm.environment.set('postId', json._id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"public\",\n  \"text\": \"Hello nearby world\",\n  \"media\": [],\n  \"location\": {\n    \"lng\": {{lng}},\n    \"lat\": {{lat}}\n  }\n}"
+            },
+            "url": "{{baseUrl}}/posts/"
+          }
+        },
+        {
+          "name": "Create Community Post",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"community\",\n  \"communityId\": \"{{communityId}}\",\n  \"text\": \"Community post\",\n  \"media\": [],\n  \"location\": {\n    \"lng\": {{lng}},\n    \"lat\": {{lat}}\n  }\n}"
+            },
+            "url": "{{baseUrl}}/posts/"
+          }
+        },
+        {
+          "name": "Get Feed",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/feed"
+          }
+        },
+        {
+          "name": "Get Readable Post",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/posts/{{postId}}?lng={{lng}}&lat={{lat}}"
+          }
+        },
+        {
+          "name": "Delete Post",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/posts/{{postId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Map",
+      "item": [
+        {
+          "name": "Map Points By BBox",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/map/posts?minLng={{minLng}}&minLat={{minLat}}&maxLng={{maxLng}}&maxLat={{maxLat}}&limit=100"
+          }
+        },
+        {
+          "name": "Map Points By Center Radius",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/map/posts?lng={{lng}}&lat={{lat}}&radiusMeters=10000&limit=100"
+          }
+        },
+        {
+          "name": "Nearby Readable Posts",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/map/posts/nearby?lng={{lng}}&lat={{lat}}&limit=50"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Comments & Likes",
+      "item": [
+        {
+          "name": "Create Comment",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json._id) pm.environment.set('commentId', json._id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Nice post\"\n}"
+            },
+            "url": "{{baseUrl}}/posts/{{postId}}/comments"
+          }
+        },
+        {
+          "name": "List Comments",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": "{{baseUrl}}/posts/{{postId}}/comments"
+          }
+        },
+        {
+          "name": "Delete Comment",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/comments/{{commentId}}"
+          }
+        },
+        {
+          "name": "Like Post",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/posts/{{postId}}/like"
+          }
+        },
+        {
+          "name": "Unlike Post",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/posts/{{postId}}/like"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Friends & Blocks",
+      "item": [
+        {
+          "name": "Send Friend Request",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/users/{{targetUserId}}/friend-requests"
+          }
+        },
+        {
+          "name": "Incoming Friend Requests",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/friend-requests"
+          }
+        },
+        {
+          "name": "Outgoing Friend Requests",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/friend-requests/sent"
+          }
+        },
+        {
+          "name": "Accept Friend Request",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/friend-requests/{{friendRequestId}}/accept"
+          }
+        },
+        {
+          "name": "Reject Friend Request",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/friend-requests/{{friendRequestId}}/reject"
+          }
+        },
+        {
+          "name": "Remove Friend",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/friends/{{targetUserId}}"
+          }
+        },
+        {
+          "name": "Get User Friends",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": "{{baseUrl}}/users/{{targetUserId}}/friends"
+          }
+        },
+        {
+          "name": "Block User",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/users/{{targetUserId}}/block"
+          }
+        },
+        {
+          "name": "Unblock User",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/users/{{targetUserId}}/block"
+          }
+        },
+        {
+          "name": "List Blocks",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/blocks"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Communities",
+      "item": [
+        {
+          "name": "Create Community",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json._id) pm.environment.set('communityId', json._id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nickname\": \"postman_community\",\n  \"title\": \"Postman Community\",\n  \"access\": \"open\",\n  \"description\": \"Created from Postman\",\n  \"bio\": \"API testing\"\n}"
+            },
+            "url": "{{baseUrl}}/communities/"
+          }
+        },
+        {
+          "name": "Get Community",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": "{{baseUrl}}/communities/{{communityId}}"
+          }
+        },
+        {
+          "name": "Update Community",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Community\",\n  \"bio\": \"Updated from Postman\"\n}"
+            },
+            "url": "{{baseUrl}}/communities/{{communityId}}"
+          }
+        },
+        {
+          "name": "Join Community",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/communities/{{communityId}}/join"
+          }
+        },
+        {
+          "name": "Leave Community",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/communities/{{communityId}}/leave"
+          }
+        },
+        {
+          "name": "Community Readable Posts",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/communities/{{communityId}}/posts?lng={{lng}}&lat={{lat}}"
+          }
+        },
+        {
+          "name": "Community Map Points",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/communities/{{communityId}}/map-posts"
+          }
+        },
+        {
+          "name": "Delete Community Post",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/communities/{{communityId}}/posts/{{postId}}"
+          }
+        },
+        {
+          "name": "List Community Requests",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/communities/{{communityId}}/requests"
+          }
+        },
+        {
+          "name": "Accept Community Request",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/communities/{{communityId}}/requests/{{communityRequestId}}/accept"
+          }
+        },
+        {
+          "name": "Reject Community Request",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/communities/{{communityId}}/requests/{{communityRequestId}}/reject"
+          }
+        },
+        {
+          "name": "Add Moderator",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/communities/{{communityId}}/moderators/{{targetUserId}}"
+          }
+        },
+        {
+          "name": "Remove Moderator",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/communities/{{communityId}}/moderators/{{targetUserId}}"
+          }
+        },
+        {
+          "name": "Ban User",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"spam\"\n}"
+            },
+            "url": "{{baseUrl}}/communities/{{communityId}}/bans/{{targetUserId}}"
+          }
+        },
+        {
+          "name": "Unban User",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/communities/{{communityId}}/bans/{{targetUserId}}"
+          }
+        },
+        {
+          "name": "List Bans",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/communities/{{communityId}}/bans"
+          }
+        },
+        {
+          "name": "Delete Community",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/communities/{{communityId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Messages",
+      "item": [
+        {
+          "name": "Create Conversation",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json._id) pm.environment.set('conversationId', json._id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"private\",\n  \"members\": [\"{{targetUserId}}\"]\n}"
+            },
+            "url": "{{baseUrl}}/conversations"
+          }
+        },
+        {
+          "name": "List Conversations",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/conversations"
+          }
+        },
+        {
+          "name": "List Messages",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/conversations/{{conversationId}}/messages"
+          }
+        },
+        {
+          "name": "Send Message",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Hello from Postman\",\n  \"attachments\": []\n}"
+            },
+            "url": "{{baseUrl}}/conversations/{{conversationId}}/messages"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Location",
+      "item": [
+        {
+          "name": "Update Location",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"lng\": {{lng}},\n  \"lat\": {{lat}}\n}"
+            },
+            "url": "{{baseUrl}}/location/update"
+          }
+        },
+        {
+          "name": "Friends Locations",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/location/friends"
+          }
+        }
+      ]
+    },
+    {
+      "name": "WebSocket",
+      "item": [
+        {
+          "name": "Connection URL",
+          "request": {
+            "method": "GET",
+            "url": "{{wsUrl}}/ws?token={{accessToken}}",
+            "description": "Use this URL in Postman's WebSocket tab. Example message: {\"event\":\"typing:start\",\"data\":{\"conversationId\":\"{{conversationId}}\"}}"
+          }
+        }
+      ]
+    }
+  ]
+}
