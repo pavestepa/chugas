@@ -10,7 +10,7 @@ app.listen(env.port);
 const hostname = app.server?.hostname ?? "localhost";
 const serverPort = app.server?.port ?? env.port;
 
-console.log(`🦊 irlgram API: http://${hostname}:${String(serverPort)}`);
+console.log(`🦊 chugas API: http://${hostname}:${String(serverPort)}`);
 console.log(`📚 Swagger: http://${hostname}:${String(serverPort)}/swagger`);
 console.log(
   `🔌 WebSocket: ws://${hostname}:${String(serverPort)}/ws?token=JWT`

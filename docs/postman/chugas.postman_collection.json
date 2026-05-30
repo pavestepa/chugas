@@ -1,7 +1,7 @@
 {
   "info": {
-    "name": "irlgram API",
-    "description": "Postman collection for the irlgram Elysia API. Import together with `irlgram Local` environment.",
+    "name": "chugas API",
+    "description": "Postman collection for the chugas Elysia API. Import together with `chugas Local` environment.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -49,7 +49,7 @@
       "name": "Auth",
       "item": [
         {
-          "name": "Start Register",
+          "name": "Start Email Session",
           "event": [
             {
               "listen": "test",
@@ -57,8 +57,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "const json = pm.response.json();",
-                  "if (json.sessionId) pm.environment.set('sessionId', json.sessionId);",
-                  "if (json.code) pm.environment.set('authCode', json.code);"
+                  "if (json.sessionId) pm.environment.set('sessionId', json.sessionId);"
                 ]
               }
             }
@@ -69,13 +68,13 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"username\": \"{{username}}\"\n}"
+              "raw": "{\n  \"identifier\": \"{{email}}\"\n}"
             },
-            "url": "{{baseUrl}}/auth/register"
+            "url": "{{baseUrl}}/auth/email/start"
           }
         },
         {
-          "name": "Start Login",
+          "name": "Verify Email Code",
           "event": [
             {
               "listen": "test",
@@ -83,8 +82,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "const json = pm.response.json();",
-                  "if (json.sessionId) pm.environment.set('sessionId', json.sessionId);",
-                  "if (json.code) pm.environment.set('authCode', json.code);"
+                  "if (json.sessionId) pm.environment.set('sessionId', json.sessionId);"
                 ]
               }
             }
@@ -95,29 +93,13 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"username\": \"{{username}}\"\n}"
+              "raw": "{\n  \"sessionId\": \"{{sessionId}}\",\n  \"code\": \"{{authCode}}\"\n}"
             },
-            "url": "{{baseUrl}}/auth/login"
+            "url": "{{baseUrl}}/auth/email/verify"
           }
         },
         {
-          "name": "Telegram Verify (internal)",
-          "request": {
-            "auth": { "type": "noauth" },
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "X-Bot-Secret", "value": "{{authBotSecret}}" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"code\": \"{{authCode}}\",\n  \"telegramId\": \"{{telegramId}}\",\n  \"telegramUsername\": \"{{telegramUsername}}\"\n}"
-            },
-            "url": "{{baseUrl}}/auth/telegram/verify"
-          }
-        },
-        {
-          "name": "Poll Auth Session",
+          "name": "Setup Password",
           "event": [
             {
               "listen": "test",
@@ -134,8 +116,90 @@
           ],
           "request": {
             "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sessionId\": \"{{sessionId}}\",\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/password/setup"
+          }
+        },
+        {
+          "name": "Login With Password",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.accessToken) pm.environment.set('accessToken', json.accessToken);",
+                  "if (json.refreshToken) pm.environment.set('refreshToken', json.refreshToken);",
+                  "if (json.user?._id) pm.environment.set('userId', json.user._id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          }
+        },
+        {
+          "name": "Get Auth Session Status",
+          "request": {
+            "auth": { "type": "noauth" },
             "method": "GET",
             "url": "{{baseUrl}}/auth/session/{{sessionId}}"
+          }
+        },
+        {
+          "name": "Request Password Reset Link",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"{{email}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/password/reset/request",
+            "description": "Sends a reset link by email. Copy `sessionId` and `code` from the email link query into `resetSessionId` and `resetCode` environment variables."
+          }
+        },
+        {
+          "name": "Confirm Password Reset",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.accessToken) pm.environment.set('accessToken', json.accessToken);",
+                  "if (json.refreshToken) pm.environment.set('refreshToken', json.refreshToken);",
+                  "if (json.user?._id) pm.environment.set('userId', json.user._id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sessionId\": \"{{resetSessionId}}\",\n  \"code\": \"{{resetCode}}\",\n  \"password\": \"{{newPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/password/reset/confirm",
+            "description": "Use the `sessionId` and `code` query params from the password reset email link."
           }
         },
         {

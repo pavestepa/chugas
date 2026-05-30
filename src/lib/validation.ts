@@ -13,6 +13,27 @@ export const codeBody = t.String({
   description: "6-digit verification code",
 });
 
+export const resetCodeBody = t.String({
+  minLength: 32,
+  maxLength: 128,
+  description: "Password reset code from email link",
+});
+
+export const emailBody = t.String({
+  format: "email",
+  maxLength: 254,
+});
+
+export const authIdentifierBody = t.String({
+  minLength: 3,
+  maxLength: 254,
+});
+
+export const passwordBody = t.String({
+  minLength: 8,
+  maxLength: 128,
+});
+
 export const mediaBody = t.String();
 
 export const locationBody = t.Object({
@@ -29,4 +50,8 @@ export const objectIdBody = t.String();
 
 export function normalizeUsername(username: string): string {
   return username.trim().toLowerCase();
+}
+
+export function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
 }

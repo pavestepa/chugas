@@ -1,7 +1,9 @@
+name: chugas
+
 services:
   nginx:
     image: nginx:1.27-alpine
-    container_name: irlgram-nginx
+    container_name: chugas-nginx
     restart: unless-stopped
     ports:
       - "80:80"
@@ -12,14 +14,14 @@ services:
 
   mongodb:
     image: mongo:7
-    container_name: irlgram-mongodb
+    container_name: chugas-mongodb
     restart: unless-stopped
     ports:
       - "27017:27017"
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: password
-      MONGO_INITDB_DATABASE: irlgram
+      MONGO_INITDB_DATABASE: chugas
     volumes:
       - mongodb_data:/data/db
     healthcheck:
@@ -30,7 +32,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: irlgram-redis
+    container_name: chugas-redis
     restart: unless-stopped
     ports:
       - "6379:6379"

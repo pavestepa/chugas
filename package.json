@@ -1,10 +1,9 @@
 {
-  "name": "irlgram",
+  "name": "chugas",
   "version": "1.0.50",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "bun run --watch src/index.ts",
-    "bot:dev": "bun run --watch authTBot/index.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -17,7 +16,6 @@
     "@elysiajs/jwt": "^1.4.2",
     "@elysiajs/openapi": "^1.4.15",
     "elysia": "latest",
-    "grammy": "^1.43.0",
     "ioredis": "^5.11.0",
     "mongoose": "^9.6.3"
   },

@@ -26,6 +26,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src/**/*.ts", "authTBot/**/*.ts", "eslint.config.ts"],
+  "include": ["src/**/*.ts", "eslint.config.ts"],
   "exclude": ["node_modules"]
 }

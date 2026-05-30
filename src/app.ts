@@ -22,7 +22,7 @@ export const app = new Elysia()
     openapi({
       documentation: {
         info: {
-          title: "irlgram API",
+          title: "chugas API",
           version: "1.0.0",
           description:
             "Social API with auth, posts, communities, chat and geolocation",
@@ -42,7 +42,7 @@ export const app = new Elysia()
       path: "/swagger",
     })
   )
-  .get("/", () => ({ name: "irlgram", status: "ok", docs: "/swagger" }))
+  .get("/", () => ({ name: "chugas", status: "ok", docs: "/swagger" }))
   .use(authHandler)
   .use(usersHandler)
   .use(blocksHandler)

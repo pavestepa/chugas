@@ -19,10 +19,6 @@ export function authSessionKey(sessionId: string): string {
   return `auth:session:${sessionId}`;
 }
 
-export function authCodeKey(code: string): string {
-  return `auth:code:${code}`;
-}
-
 export function wsUserKey(userId: string): string {
   return `ws:user:${userId}`;
 }

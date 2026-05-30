@@ -1,22 +1,19 @@
-import { randomInt, randomUUID } from "node:crypto";
+import { createHash, randomInt, randomUUID } from "node:crypto";
 import { env } from "@/config/env";
-import {
-  authCodeKey,
-  authSessionKey,
-  refreshTokenKey,
-  redis,
-} from "@/db/redis";
-import { normalizeUsername } from "@/lib/validation";
+import { authSessionKey, refreshTokenKey, redis } from "@/db/redis";
+import { sendAuthCodeEmail, sendPasswordResetEmail } from "@/lib/mailer";
+import { normalizeEmail, normalizeUsername } from "@/lib/validation";
 import { toUserJson, UserModel } from "@/schemas/user.schema";
 
-type AuthMode = "register" | "login";
+type AuthMode = "register" | "password_setup" | "password_reset";
 
 interface AuthSession {
   sessionId: string;
-  username: string;
-  code: string;
+  email: string;
+  codeHash: string;
   mode: AuthMode;
-  status: "pending" | "completed";
+  userId?: string;
+  status: "pending" | "email_verified" | "completed";
   user?: ReturnType<typeof toUserJson>;
   accessToken?: string;
   refreshToken?: string;
@@ -26,20 +23,33 @@ function generateCode(): string {
   return randomInt(100_000, 1_000_000).toString();
 }
 
+function generateResetCode(): string {
+  return randomUUID().replaceAll("-", "");
+}
+
+function isEmail(identifier: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier);
+}
+
+function codeHash(sessionId: string, code: string): string {
+  return createHash("sha256")
+    .update(`${sessionId}:${code}:${env.jwtSecret}`)
+    .digest("hex");
+}
+
+function passwordResetLink(sessionId: string, code: string): string {
+  const url = new URL(env.passwordResetUrl);
+  url.searchParams.set("sessionId", sessionId);
+  url.searchParams.set("code", code);
+  return url.toString();
+}
+
 async function saveSession(session: AuthSession) {
   await redis.setex(
     authSessionKey(session.sessionId),
     env.authSessionExpiresInSeconds,
     JSON.stringify(session)
   );
-
-  if (session.status === "pending") {
-    await redis.setex(
-      authCodeKey(session.code),
-      env.authSessionExpiresInSeconds,
-      session.sessionId
-    );
-  }
 }
 
 async function getSession(sessionId: string): Promise<AuthSession | null> {
@@ -51,40 +61,15 @@ async function getSession(sessionId: string): Promise<AuthSession | null> {
 }
 
 export const AuthService = {
-  startRegister: async (username: string) => {
-    const normalizedUsername = normalizeUsername(username);
-    const existingUser = await UserModel.findOne({
-      username: normalizedUsername,
-    });
-    if (existingUser) {
-      return { error: "username_taken" as const };
-    }
+  startEmailSession: async (identifier: string) => {
+    const normalizedIdentifier = identifier.trim().toLowerCase();
+    const existingUser = isEmail(normalizedIdentifier)
+      ? await UserModel.findOne({ email: normalizeEmail(normalizedIdentifier) })
+      : await UserModel.findOne({
+          username: normalizeUsername(normalizedIdentifier),
+        });
 
-    const sessionId = randomUUID();
-    const code = generateCode();
-    const session: AuthSession = {
-      sessionId,
-      username: normalizedUsername,
-      code,
-      mode: "register",
-      status: "pending",
-    };
-
-    await saveSession(session);
-
-    return {
-      sessionId,
-      code,
-      expiresIn: env.authSessionExpiresInSeconds,
-      botUsername: env.telegramBotUsername,
-      botLink: `https://t.me/${env.telegramBotUsername}`,
-    };
-  },
-
-  startLogin: async (username: string) => {
-    const normalizedUsername = normalizeUsername(username);
-    const user = await UserModel.findOne({ username: normalizedUsername });
-    if (!user) {
+    if (!existingUser && !isEmail(normalizedIdentifier)) {
       return { error: "not_found" as const };
     }
 
@@ -92,20 +77,204 @@ export const AuthService = {
     const code = generateCode();
     const session: AuthSession = {
       sessionId,
-      username: normalizedUsername,
-      code,
-      mode: "login",
+      email: existingUser
+        ? String(existingUser.email)
+        : normalizeEmail(normalizedIdentifier),
+      codeHash: codeHash(sessionId, code),
+      mode: existingUser ? "password_setup" : "register",
+      ...(existingUser ? { userId: existingUser._id.toString() } : {}),
       status: "pending",
     };
 
     await saveSession(session);
+    await sendAuthCodeEmail(session.email, code);
 
     return {
       sessionId,
-      code,
       expiresIn: env.authSessionExpiresInSeconds,
-      botUsername: env.telegramBotUsername,
-      botLink: `https://t.me/${env.telegramBotUsername}`,
+      email: session.email,
+      status: session.status,
+    };
+  },
+
+  verifyEmailCode: async (input: { sessionId: string; code: string }) => {
+    const session = await getSession(input.sessionId);
+    if (session?.status !== "pending") {
+      return { error: "not_found" as const };
+    }
+
+    if (session.codeHash !== codeHash(session.sessionId, input.code)) {
+      return { error: "invalid_code" as const };
+    }
+
+    session.status = "email_verified";
+    await saveSession(session);
+
+    return {
+      sessionId: session.sessionId,
+      email: session.email,
+      mode: session.mode,
+      status: session.status,
+    };
+  },
+
+  setupPassword: async (input: {
+    sessionId: string;
+    username: string;
+    password: string;
+  }) => {
+    const session = await getSession(input.sessionId);
+    if (session?.status !== "email_verified") {
+      return { error: "not_found" as const };
+    }
+
+    const username = normalizeUsername(input.username);
+    const passwordHash = await Bun.password.hash(input.password, {
+      algorithm: "argon2id",
+    });
+
+    const existingByUsername = await UserModel.findOne({ username });
+    if (
+      existingByUsername &&
+      existingByUsername._id.toString() !== session.userId
+    ) {
+      return { error: "username_taken" as const };
+    }
+
+    const user =
+      session.userId !== undefined
+        ? await UserModel.findByIdAndUpdate(
+            session.userId,
+            { passwordHash, username },
+            { new: true, runValidators: true }
+          )
+        : await UserModel.create({
+            email: session.email,
+            username,
+            passwordHash,
+          });
+
+    if (!user) {
+      return { error: "not_found" as const };
+    }
+
+    const refreshToken = await AuthService.createRefreshToken(
+      user._id.toString()
+    );
+
+    session.status = "completed";
+    session.user = toUserJson(user);
+    session.refreshToken = refreshToken;
+    await saveSession(session);
+    await redis.del(authSessionKey(session.sessionId));
+
+    return {
+      user: toUserJson(user),
+      userId: user._id.toString(),
+      refreshToken,
+    };
+  },
+
+  loginWithPassword: async (input: {
+    identifier: string;
+    password: string;
+  }) => {
+    const identifier = input.identifier.trim().toLowerCase();
+    const user = isEmail(identifier)
+      ? await UserModel.findOne({ email: normalizeEmail(identifier) })
+      : await UserModel.findOne({ username: normalizeUsername(identifier) });
+
+    if (!user) {
+      return { error: "not_found" as const };
+    }
+
+    const verified = await Bun.password.verify(
+      input.password,
+      String(user.passwordHash)
+    );
+    if (!verified) {
+      return { error: "invalid_credentials" as const };
+    }
+
+    const refreshToken = await AuthService.createRefreshToken(
+      user._id.toString()
+    );
+
+    return {
+      user: toUserJson(user),
+      userId: user._id.toString(),
+      refreshToken,
+    };
+  },
+
+  startPasswordReset: async (identifier: string) => {
+    const normalizedIdentifier = identifier.trim().toLowerCase();
+    const user = isEmail(normalizedIdentifier)
+      ? await UserModel.findOne({ email: normalizeEmail(normalizedIdentifier) })
+      : await UserModel.findOne({
+          username: normalizeUsername(normalizedIdentifier),
+        });
+
+    if (user) {
+      const sessionId = randomUUID();
+      const code = generateResetCode();
+      const session: AuthSession = {
+        sessionId,
+        email: String(user.email),
+        codeHash: codeHash(sessionId, code),
+        mode: "password_reset",
+        userId: user._id.toString(),
+        status: "pending",
+      };
+
+      await saveSession(session);
+      await sendPasswordResetEmail(
+        session.email,
+        passwordResetLink(sessionId, code)
+      );
+    }
+
+    return {
+      sent: true as const,
+      expiresIn: env.authSessionExpiresInSeconds,
+    };
+  },
+
+  resetPassword: async (input: {
+    sessionId: string;
+    code: string;
+    password: string;
+  }) => {
+    const session = await getSession(input.sessionId);
+    if (session?.status !== "pending" || session.mode !== "password_reset") {
+      return { error: "not_found" as const };
+    }
+
+    if (session.codeHash !== codeHash(session.sessionId, input.code)) {
+      return { error: "invalid_code" as const };
+    }
+
+    if (!session.userId) {
+      return { error: "not_found" as const };
+    }
+
+    const passwordHash = await Bun.password.hash(input.password, {
+      algorithm: "argon2id",
+    });
+    const user = await UserModel.findByIdAndUpdate(
+      session.userId,
+      { passwordHash },
+      { new: true, runValidators: true }
+    );
+    if (!user) {
+      return { error: "not_found" as const };
+    }
+
+    await redis.del(authSessionKey(session.sessionId));
+
+    return {
+      user: toUserJson(user),
+      userId: user._id.toString(),
     };
   },
 
@@ -115,75 +284,11 @@ export const AuthService = {
       return { error: "not_found" as const };
     }
 
-    if (session.status === "pending") {
-      return {
-        status: "pending" as const,
-        username: session.username,
-        mode: session.mode,
-        expiresIn: env.authSessionExpiresInSeconds,
-      };
-    }
-
     return {
-      status: "completed" as const,
-      user: session.user,
-      accessToken: session.accessToken,
-      refreshToken: session.refreshToken,
-    };
-  },
-
-  verifyTelegramCode: async (input: {
-    code: string;
-    telegramId: string;
-    telegramUsername?: string;
-  }) => {
-    const sessionId = await redis.get(authCodeKey(input.code));
-    if (!sessionId) {
-      return { error: "invalid_code" as const };
-    }
-
-    const session = await getSession(sessionId);
-    if (session?.status !== "pending" || session.code !== input.code) {
-      return { error: "invalid_code" as const };
-    }
-
-    const telegramId = input.telegramId;
-    const linkedUser = await UserModel.findOne({ telegramId });
-    if (linkedUser && linkedUser.username !== session.username) {
-      return { error: "telegram_linked" as const };
-    }
-
-    let user =
-      session.mode === "register"
-        ? await UserModel.findOne({ username: session.username })
-        : await UserModel.findOne({ username: session.username });
-
-    if (session.mode === "register") {
-      if (user) {
-        return { error: "username_taken" as const };
-      }
-
-      user = await UserModel.create({
-        username: session.username,
-        telegramId,
-        telegramUsername: input.telegramUsername ?? "",
-      });
-    } else {
-      if (!user) {
-        return { error: "not_found" as const };
-      }
-
-      user.telegramId = telegramId;
-      user.telegramUsername = input.telegramUsername ?? user.telegramUsername;
-      await user.save();
-    }
-
-    await redis.del(authCodeKey(input.code));
-
-    return {
-      sessionId: session.sessionId,
-      user: toUserJson(user),
-      userId: user._id.toString(),
+      status: session.status,
+      email: session.email,
+      mode: session.mode,
+      expiresIn: env.authSessionExpiresInSeconds,
     };
   },
 
@@ -205,7 +310,6 @@ export const AuthService = {
     session.accessToken = data.accessToken;
     session.refreshToken = data.refreshToken;
     await saveSession(session);
-    await redis.del(authCodeKey(session.code));
     return true;
   },
 
