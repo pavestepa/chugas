@@ -36,10 +36,10 @@ export const locationHandler = new Elysia({
     }
   )
   .get(
-    "/friends",
-    ({ userId }) => LocationService.getFriendsLocations(getUserId(userId)),
+    "/following",
+    ({ userId }) => LocationService.getFollowingLocations(getUserId(userId)),
     {
       auth: true,
-      detail: { summary: "Get friends locations" },
+      detail: { summary: "Get followed users locations" },
     }
   );

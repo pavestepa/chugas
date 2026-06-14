@@ -70,6 +70,6 @@ export const wsHandler = new Elysia({ tags: ["WebSocket"] })
     detail: {
       summary: "WebSocket for realtime events",
       description:
-        "Connect with ?token=JWT. Events: location:update, location:friend_updated, message:new, typing:start, typing:stop, notification:new",
+        "Connect with ?token=JWT. Events: location:update, location:following_updated, message:new, typing:start, typing:stop, notification:new",
     },
   });

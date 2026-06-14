@@ -1,4 +1,4 @@
-import { FriendsService } from "@/services/friends.service";
+import { FollowsService } from "@/services/follows.service";
 import {
   type BBox,
   distanceMeters,
@@ -52,7 +52,7 @@ interface MapPostFilters {
   userId: string;
   type?: PostType;
   communityId?: string;
-  friendId?: string;
+  followingId?: string;
   limit?: number;
   bbox?: BBox;
   center?: Coordinates;
@@ -171,14 +171,14 @@ async function canAccessPost(
     ));
   }
 
-  if (post.visibility === "friends") {
+  if (post.visibility === "followers") {
     if (post.authorId.toString() === userId) {
       return true;
     }
 
-    const friendIds = await FriendsService.friendIds(userId);
+    const followingIds = await FollowsService.followingIds(userId);
     return (
-      friendIds.includes(post.authorId.toString()) &&
+      followingIds.includes(post.authorId.toString()) &&
       !(await BlocksService.isBlockedBetween(post.authorId.toString(), userId))
     );
   }
@@ -229,8 +229,8 @@ export const PostsService: PostsServiceContract = {
   create: async (input: CreatePostInput) => {
     const location = normalizeCoordinates(input.location);
     const visibility =
-      input.type === "friend"
-        ? "friends"
+      input.type === "followers"
+        ? "followers"
         : input.type === "community"
           ? "community"
           : "public";
@@ -288,7 +288,7 @@ export const PostsService: PostsServiceContract = {
   },
 
   feed: async (userId: string) => {
-    const authorIds = [userId, ...(await FriendsService.friendIds(userId))];
+    const authorIds = [userId, ...(await FollowsService.followingIds(userId))];
     const blockedIds = [
       ...(await BlocksService.blockedUserIds(userId)),
       ...(await BlocksService.blockedByUserIds(userId)),
@@ -298,7 +298,7 @@ export const PostsService: PostsServiceContract = {
         blockedIds.length > 0
           ? { $in: authorIds, $nin: blockedIds }
           : { $in: authorIds },
-      visibility: { $in: ["public", "friends"] },
+      visibility: { $in: ["public", "followers"] },
       expiresAt: { $gt: new Date() },
     })
       .sort({ createdAt: -1 })
@@ -332,14 +332,17 @@ export const PostsService: PostsServiceContract = {
       filter.communityId = filters.communityId;
     }
 
-    if (filters.friendId !== undefined) {
+    if (filters.followingId !== undefined) {
       if (
-        await BlocksService.isBlockedBetween(filters.userId, filters.friendId)
+        await BlocksService.isBlockedBetween(
+          filters.userId,
+          filters.followingId
+        )
       ) {
         return { points: [] };
       }
 
-      filter.authorId = filters.friendId;
+      filter.authorId = filters.followingId;
     }
 
     const blockedIds = [
@@ -347,7 +350,7 @@ export const PostsService: PostsServiceContract = {
       ...(await BlocksService.blockedByUserIds(filters.userId)),
     ];
     if (blockedIds.length > 0) {
-      filter.authorId = filters.friendId ?? { $nin: blockedIds };
+      filter.authorId = filters.followingId ?? { $nin: blockedIds };
     }
 
     const posts = await PostModel.find(filter)
@@ -379,14 +382,17 @@ export const PostsService: PostsServiceContract = {
       filter.communityId = filters.communityId;
     }
 
-    if (filters.friendId !== undefined) {
+    if (filters.followingId !== undefined) {
       if (
-        await BlocksService.isBlockedBetween(filters.userId, filters.friendId)
+        await BlocksService.isBlockedBetween(
+          filters.userId,
+          filters.followingId
+        )
       ) {
         return { posts: [] };
       }
 
-      filter.authorId = filters.friendId;
+      filter.authorId = filters.followingId;
     }
 
     const blockedIds = [
@@ -394,7 +400,7 @@ export const PostsService: PostsServiceContract = {
       ...(await BlocksService.blockedByUserIds(filters.userId)),
     ];
     if (blockedIds.length > 0) {
-      filter.authorId = filters.friendId ?? { $nin: blockedIds };
+      filter.authorId = filters.followingId ?? { $nin: blockedIds };
     }
 
     const posts = await PostModel.find(filter).limit(

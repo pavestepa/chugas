@@ -5,7 +5,7 @@ import { blocksHandler } from "@/handlers/blocks.handler";
 import { commentsHandler } from "@/handlers/comments.handler";
 import { communitiesHandler } from "@/handlers/communities.handler";
 import { feedHandler, postsHandler } from "@/handlers/posts.handler";
-import { friendsHandler } from "@/handlers/friends.handler";
+import { followsHandler } from "@/handlers/follows.handler";
 import { likesHandler } from "@/handlers/likes.handler";
 import { locationHandler } from "@/handlers/location.handler";
 import { mapHandler } from "@/handlers/map.handler";
@@ -46,7 +46,7 @@ export const app = new Elysia()
   .use(authHandler)
   .use(usersHandler)
   .use(blocksHandler)
-  .use(friendsHandler)
+  .use(followsHandler)
   .use(postsHandler)
   .use(feedHandler)
   .use(commentsHandler)

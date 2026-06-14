@@ -40,7 +40,14 @@ export const usersHandler = new Elysia({ prefix: "/users", tags: ["Users"] })
         username: t.Optional(t.String({ minLength: 3, maxLength: 32 })),
         avatarUrl: t.Optional(t.String()),
         bio: t.Optional(t.String({ maxLength: 500 })),
+        accountType: t.Optional(
+          t.Union([t.Literal("open"), t.Literal("closed")])
+        ),
       }),
-      detail: { summary: "Update current user" },
+      detail: {
+        summary: "Update current user",
+        description:
+          "Updates profile fields. `accountType` controls whether new followers are added immediately (`open`) or via follow request (`closed`).",
+      },
     }
   );

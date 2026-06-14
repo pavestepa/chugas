@@ -14,6 +14,14 @@ const userSchema = new Schema(
     passwordHash: { type: String, required: true },
     avatarUrl: { type: String, default: "" },
     bio: { type: String, default: "", maxlength: 500 },
+    followersCount: { type: Number, default: 0, min: 0 },
+    followingCount: { type: Number, default: 0, min: 0 },
+    accountType: {
+      type: String,
+      enum: ["open", "closed"],
+      default: "open",
+      required: true,
+    },
   },
   {
     ...defaultSchemaOptions,

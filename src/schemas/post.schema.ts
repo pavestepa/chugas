@@ -6,13 +6,13 @@ const postSchema = new Schema(
     authorId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     type: {
       type: String,
-      enum: ["public", "friend", "community"],
+      enum: ["public", "followers", "community"],
       required: true,
     },
     communityId: { type: Schema.Types.ObjectId, ref: "Community" },
     visibility: {
       type: String,
-      enum: ["public", "friends", "community"],
+      enum: ["public", "followers", "community"],
       required: true,
     },
     text: { type: String, required: true, maxlength: 5000 },
@@ -48,8 +48,8 @@ export type PostDocument = InferSchemaType<typeof postSchema> & {
   _id: string;
   authorId: string;
   communityId?: string;
-  type: "public" | "friend" | "community";
-  visibility: "public" | "friends" | "community";
+  type: "public" | "followers" | "community";
+  visibility: "public" | "followers" | "community";
   createdAt: Date;
   expiresAt: Date;
 };

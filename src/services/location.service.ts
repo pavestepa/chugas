@@ -1,6 +1,6 @@
 import { env } from "@/config/env";
 import { locationKey, redis } from "@/db/redis";
-import { FriendsService } from "@/services/friends.service";
+import { FollowsService } from "@/services/follows.service";
 import { LocationModel } from "@/schemas/location.schema";
 import { wsHub } from "@/lib/ws-hub";
 
@@ -51,9 +51,9 @@ export const LocationService = {
 
     wsHub.emitToUser(userId, "location:update", { userId, ...payload });
 
-    const friendIds = await FriendsService.friendIds(userId);
-    for (const friendId of friendIds) {
-      wsHub.emitToUser(friendId, "location:friend_updated", {
+    const followerIds = await FollowsService.followerIds(userId);
+    for (const followerId of followerIds) {
+      wsHub.emitToUser(followerId, "location:following_updated", {
         userId,
         ...payload,
       });
@@ -62,26 +62,26 @@ export const LocationService = {
     return payload;
   },
 
-  getFriendsLocations: async (userId: string) => {
-    const friendIds = await FriendsService.friendIds(userId);
+  getFollowingLocations: async (userId: string) => {
+    const followingIds = await FollowsService.followingIds(userId);
     const locations = await Promise.all(
-      friendIds.map(async (friendId) => {
-        const cached = await redis.get(locationKey(friendId));
+      followingIds.map(async (followingId) => {
+        const cached = await redis.get(locationKey(followingId));
         if (cached) {
           return {
-            userId: friendId,
+            userId: followingId,
             ...(JSON.parse(cached) as RedisLocation),
           };
         }
 
-        const stored = await LocationModel.findOne({ userId: friendId });
+        const stored = await LocationModel.findOne({ userId: followingId });
         if (!stored?.location?.coordinates) {
           return null;
         }
 
         const [lng, lat] = stored.location.coordinates;
         return {
-          userId: friendId,
+          userId: followingId,
           lat,
           lng,
           updatedAt: Math.floor(stored.updatedAt.getTime() / 1000),

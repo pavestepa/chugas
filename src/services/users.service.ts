@@ -13,6 +13,7 @@ export const UsersService = {
       username?: string;
       avatarUrl?: string;
       bio?: string;
+      accountType?: "open" | "closed";
     }
   ) => {
     const user = await UserModel.findByIdAndUpdate(userId, input, {

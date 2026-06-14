@@ -5,10 +5,14 @@ import { PostsService } from "@/services/posts.service";
 
 const mapFilters = t.Object({
   type: t.Optional(
-    t.Union([t.Literal("public"), t.Literal("friend"), t.Literal("community")])
+    t.Union([
+      t.Literal("public"),
+      t.Literal("followers"),
+      t.Literal("community"),
+    ])
   ),
   communityId: t.Optional(t.String()),
-  friendId: t.Optional(t.String()),
+  followingId: t.Optional(t.String()),
   limit: t.Optional(t.Number({ minimum: 1, maximum: 500 })),
   minLng: t.Optional(t.Number({ minimum: -180, maximum: 180 })),
   minLat: t.Optional(t.Number({ minimum: -90, maximum: 90 })),
@@ -74,7 +78,9 @@ export const mapHandler = new Elysia({ prefix: "/map", tags: ["Map"] })
         ...(query.communityId !== undefined
           ? { communityId: query.communityId }
           : {}),
-        ...(query.friendId !== undefined ? { friendId: query.friendId } : {}),
+        ...(query.followingId !== undefined
+          ? { followingId: query.followingId }
+          : {}),
         ...(query.limit !== undefined ? { limit: query.limit } : {}),
       });
       if ("error" in result) {
@@ -99,7 +105,9 @@ export const mapHandler = new Elysia({ prefix: "/map", tags: ["Map"] })
         ...(query.communityId !== undefined
           ? { communityId: query.communityId }
           : {}),
-        ...(query.friendId !== undefined ? { friendId: query.friendId } : {}),
+        ...(query.followingId !== undefined
+          ? { followingId: query.followingId }
+          : {}),
         ...(query.limit !== undefined ? { limit: query.limit } : {}),
       });
       return result.posts;
@@ -112,12 +120,12 @@ export const mapHandler = new Elysia({ prefix: "/map", tags: ["Map"] })
         type: t.Optional(
           t.Union([
             t.Literal("public"),
-            t.Literal("friend"),
+            t.Literal("followers"),
             t.Literal("community"),
           ])
         ),
         communityId: t.Optional(t.String()),
-        friendId: t.Optional(t.String()),
+        followingId: t.Optional(t.String()),
         limit: t.Optional(t.Number({ minimum: 1, maximum: 200 })),
       }),
       detail: { summary: "Get readable nearby posts within 500m" },

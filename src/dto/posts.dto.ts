@@ -1,5 +1,5 @@
-export type PostType = "public" | "friend" | "community";
-export type PostVisibility = "public" | "friends" | "community";
+export type PostType = "public" | "followers" | "community";
+export type PostVisibility = "public" | "followers" | "community";
 
 export interface GeoPointDto {
   type: "Point";

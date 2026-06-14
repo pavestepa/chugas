@@ -55,7 +55,7 @@ export const postsHandler = new Elysia({ prefix: "/posts", tags: ["Posts"] })
       body: t.Object({
         type: t.Union([
           t.Literal("public"),
-          t.Literal("friend"),
+          t.Literal("followers"),
           t.Literal("community"),
         ]),
         text: t.String({ minLength: 1, maxLength: 5000 }),

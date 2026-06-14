@@ -30,17 +30,23 @@
         {
           "name": "Root",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "GET",
-            "url": "{{baseUrl}}/"
+            "url": "{{baseUrl}}/",
+            "description": "Health check for the API root. Returns basic service metadata and confirms that the server is running."
           }
         },
         {
           "name": "Swagger UI",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "GET",
-            "url": "{{baseUrl}}/swagger"
+            "url": "{{baseUrl}}/swagger",
+            "description": "Opens the generated Swagger/OpenAPI documentation for the chugas API."
           }
         }
       ]
@@ -63,14 +69,22 @@
             }
           ],
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"identifier\": \"{{email}}\"\n}"
             },
-            "url": "{{baseUrl}}/auth/email/start"
+            "url": "{{baseUrl}}/auth/email/start",
+            "description": "Starts email-based authentication. Sends a 6-digit code to the email or username in `identifier` and returns a short-lived `sessionId` used by the verification step."
           }
         },
         {
@@ -88,14 +102,22 @@
             }
           ],
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"sessionId\": \"{{sessionId}}\",\n  \"code\": \"{{authCode}}\"\n}"
             },
-            "url": "{{baseUrl}}/auth/email/verify"
+            "url": "{{baseUrl}}/auth/email/verify",
+            "description": "Verifies the 6-digit code for an email auth session. On success, confirms the session and keeps `sessionId` available for password setup or session status checks."
           }
         },
         {
@@ -115,14 +137,22 @@
             }
           ],
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"sessionId\": \"{{sessionId}}\",\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}"
             },
-            "url": "{{baseUrl}}/auth/password/setup"
+            "url": "{{baseUrl}}/auth/password/setup",
+            "description": "Completes registration after email verification. Creates or updates the user credentials with `username` and `password`, then returns `user`, `accessToken`, and `refreshToken`."
           }
         },
         {
@@ -142,36 +172,54 @@
             }
           ],
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"identifier\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
             },
-            "url": "{{baseUrl}}/auth/login"
+            "url": "{{baseUrl}}/auth/login",
+            "description": "Authenticates an existing user by email or username plus password. Returns the user profile and fresh access/refresh tokens for authenticated requests."
           }
         },
         {
           "name": "Get Auth Session Status",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "GET",
-            "url": "{{baseUrl}}/auth/session/{{sessionId}}"
+            "url": "{{baseUrl}}/auth/session/{{sessionId}}",
+            "description": "Reads the current status of an email auth session by `sessionId`, for example to check whether it is verified or expired."
           }
         },
         {
           "name": "Request Password Reset Link",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"identifier\": \"{{email}}\"\n}"
             },
             "url": "{{baseUrl}}/auth/password/reset/request",
-            "description": "Sends a reset link by email. Copy `sessionId` and `code` from the email link query into `resetSessionId` and `resetCode` environment variables."
+            "description": "Starts password reset for an existing account. Sends an email link when the user exists; copy the link query params into `resetSessionId` and `resetCode` for the confirm step."
           }
         },
         {
@@ -191,15 +239,22 @@
             }
           ],
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"sessionId\": \"{{resetSessionId}}\",\n  \"code\": \"{{resetCode}}\",\n  \"password\": \"{{newPassword}}\"\n}"
             },
             "url": "{{baseUrl}}/auth/password/reset/confirm",
-            "description": "Use the `sessionId` and `code` query params from the password reset email link."
+            "description": "Finishes password reset using `resetSessionId`, `resetCode`, and a new password. On success, returns the user profile and new access/refresh tokens."
           }
         },
         {
@@ -219,26 +274,40 @@
             }
           ],
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
             },
-            "url": "{{baseUrl}}/auth/refresh"
+            "url": "{{baseUrl}}/auth/refresh",
+            "description": "Rotates a valid refresh token and returns a new access token, a new refresh token, and the current user. Use this when `accessToken` expires."
           }
         },
         {
           "name": "Logout",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
             },
-            "url": "{{baseUrl}}/auth/logout"
+            "url": "{{baseUrl}}/auth/logout",
+            "description": "Revokes the provided refresh token and flushes the authenticated user location cache. After this request, the old refresh token cannot be used again."
           }
         }
       ]
@@ -249,29 +318,77 @@
         {
           "name": "Search Users",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "GET",
-            "url": "{{baseUrl}}/users/search?q={{username}}"
+            "url": "{{baseUrl}}/users/search?q={{username}}",
+            "description": "Searches users by the `q` query string. This is a public lookup endpoint and is useful for finding a `targetUserId` by username."
           }
         },
         {
           "name": "Get User By Id",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "GET",
-            "url": "{{baseUrl}}/users/{{targetUserId}}"
+            "url": "{{baseUrl}}/users/{{targetUserId}}",
+            "description": "Fetches a public user profile by `targetUserId`. Returns 404 when the user does not exist."
           }
         },
         {
           "name": "Update Me",
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"bio\": \"Hello from Postman\",\n  \"avatarUrl\": \"https://example.com/avatar.png\"\n}"
+              "raw": "{\n  \"bio\": \"Hello from Postman\",\n  \"avatarUrl\": \"https://example.com/avatar.png\",\n  \"accountType\": \"closed\"\n}"
             },
-            "url": "{{baseUrl}}/users/me"
+            "url": "{{baseUrl}}/users/me",
+            "description": "Updates the authenticated user profile. Set `accountType` to `closed` to require follow requests, or `open` for instant follows."
+          }
+        },
+        {
+          "name": "Set Closed Account",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/users/me",
+            "description": "Switches the authenticated account to closed mode so new followers must send a follow request.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountType\": \"closed\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Set Open Account",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/users/me",
+            "description": "Switches the authenticated account to open mode so new followers are added immediately.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountType\": \"open\"\n}"
+            }
           }
         }
       ]
@@ -295,45 +412,90 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"type\": \"public\",\n  \"text\": \"Hello nearby world\",\n  \"media\": [],\n  \"location\": {\n    \"lng\": {{lng}},\n    \"lat\": {{lat}}\n  }\n}"
             },
-            "url": "{{baseUrl}}/posts/"
+            "url": "{{baseUrl}}/posts/",
+            "description": "Creates an authenticated public post at the provided coordinates. Public posts can appear in feed, map, and nearby readable post queries according to visibility rules."
           }
+        },
+        {
+          "name": "Create Followers Post",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/posts/",
+            "description": "Creates an authenticated post visible to the author and users who follow the author. This replaces the old followers-only post visibility.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"followers\",\n  \"text\": \"Hello followers\",\n  \"media\": [],\n  \"location\": {\n    \"lng\": {{lng}},\n    \"lat\": {{lat}}\n  }\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json._id) pm.environment.set('postId', json._id);"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Create Community Post",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"type\": \"community\",\n  \"communityId\": \"{{communityId}}\",\n  \"text\": \"Community post\",\n  \"media\": [],\n  \"location\": {\n    \"lng\": {{lng}},\n    \"lat\": {{lat}}\n  }\n}"
             },
-            "url": "{{baseUrl}}/posts/"
+            "url": "{{baseUrl}}/posts/",
+            "description": "Creates an authenticated post inside `communityId` at the provided coordinates. The caller must be allowed to post in that community."
           }
         },
         {
           "name": "Get Feed",
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/feed"
+            "url": "{{baseUrl}}/feed",
+            "description": "Returns the authenticated user feed with posts that are visible to the current user."
           }
         },
         {
           "name": "Get Readable Post",
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/posts/{{postId}}?lng={{lng}}&lat={{lat}}"
+            "url": "{{baseUrl}}/posts/{{postId}}?lng={{lng}}&lat={{lat}}",
+            "description": "Fetches one post by `postId` for the authenticated user and supplied reader coordinates. The API rejects posts that are not visible or are outside the readable radius."
           }
         },
         {
           "name": "Delete Post",
           "request": {
             "method": "DELETE",
-            "url": "{{baseUrl}}/posts/{{postId}}"
+            "url": "{{baseUrl}}/posts/{{postId}}",
+            "description": "Deletes `postId` as the authenticated author. Returns no content when deletion succeeds."
           }
         }
       ]
@@ -345,21 +507,24 @@
           "name": "Map Points By BBox",
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/map/posts?minLng={{minLng}}&minLat={{minLat}}&maxLng={{maxLng}}&maxLat={{maxLat}}&limit=100"
+            "url": "{{baseUrl}}/map/posts?minLng={{minLng}}&minLat={{minLat}}&maxLng={{maxLng}}&maxLat={{maxLat}}&limit=100",
+            "description": "Returns lightweight map points for posts visible to the authenticated user inside the bounding box defined by min/max longitude and latitude."
           }
         },
         {
           "name": "Map Points By Center Radius",
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/map/posts?lng={{lng}}&lat={{lat}}&radiusMeters=10000&limit=100"
+            "url": "{{baseUrl}}/map/posts?lng={{lng}}&lat={{lat}}&radiusMeters=10000&limit=100",
+            "description": "Returns lightweight map points for posts visible to the authenticated user around `lng`/`lat` within `radiusMeters`."
           }
         },
         {
           "name": "Nearby Readable Posts",
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/map/posts/nearby?lng={{lng}}&lat={{lat}}&limit=50"
+            "url": "{{baseUrl}}/map/posts/nearby?lng={{lng}}&lat={{lat}}&limit=50",
+            "description": "Returns full readable posts near the authenticated user coordinates. This is for nearby lists, not just map markers."
           }
         }
       ]
@@ -383,117 +548,164 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"text\": \"Nice post\"\n}"
             },
-            "url": "{{baseUrl}}/posts/{{postId}}/comments"
+            "url": "{{baseUrl}}/posts/{{postId}}/comments",
+            "description": "Adds a comment with `text` to `postId` as the authenticated user and returns the created comment."
           }
         },
         {
           "name": "List Comments",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "GET",
-            "url": "{{baseUrl}}/posts/{{postId}}/comments"
+            "url": "{{baseUrl}}/posts/{{postId}}/comments",
+            "description": "Lists comments for `postId`. This endpoint does not require authentication in the collection."
           }
         },
         {
           "name": "Delete Comment",
           "request": {
             "method": "DELETE",
-            "url": "{{baseUrl}}/comments/{{commentId}}"
+            "url": "{{baseUrl}}/comments/{{commentId}}",
+            "description": "Deletes `commentId` as the authenticated comment owner. Returns no content when deletion succeeds."
           }
         },
         {
           "name": "Like Post",
           "request": {
             "method": "POST",
-            "url": "{{baseUrl}}/posts/{{postId}}/like"
+            "url": "{{baseUrl}}/posts/{{postId}}/like",
+            "description": "Likes `postId` as the authenticated user. A duplicate like returns a conflict."
           }
         },
         {
           "name": "Unlike Post",
           "request": {
             "method": "DELETE",
-            "url": "{{baseUrl}}/posts/{{postId}}/like"
+            "url": "{{baseUrl}}/posts/{{postId}}/like",
+            "description": "Removes the authenticated user like from `postId`. Returns no content when the like is removed."
           }
         }
       ]
     },
     {
-      "name": "Friends & Blocks",
+      "name": "Follows & Blocks",
       "item": [
         {
-          "name": "Send Friend Request",
+          "name": "Follow User",
           "request": {
             "method": "POST",
-            "url": "{{baseUrl}}/users/{{targetUserId}}/friend-requests"
-          }
+            "url": "{{baseUrl}}/users/{{targetUserId}}/follow",
+            "description": "Follows `targetUserId` immediately when the account is `open`. Creates a pending follow request when the account is `closed`. Blocked users cannot follow each other."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json._id) pm.environment.set('followRequestId', json._id);"
+                ]
+              }
+            }
+          ]
         },
         {
-          "name": "Incoming Friend Requests",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/friend-requests"
-          }
-        },
-        {
-          "name": "Outgoing Friend Requests",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/friend-requests/sent"
-          }
-        },
-        {
-          "name": "Accept Friend Request",
-          "request": {
-            "method": "POST",
-            "url": "{{baseUrl}}/friend-requests/{{friendRequestId}}/accept"
-          }
-        },
-        {
-          "name": "Reject Friend Request",
-          "request": {
-            "method": "POST",
-            "url": "{{baseUrl}}/friend-requests/{{friendRequestId}}/reject"
-          }
-        },
-        {
-          "name": "Remove Friend",
+          "name": "Unfollow User",
           "request": {
             "method": "DELETE",
-            "url": "{{baseUrl}}/friends/{{targetUserId}}"
+            "url": "{{baseUrl}}/users/{{targetUserId}}/follow",
+            "description": "Removes an active follow to `targetUserId`. If no follow exists, cancels a pending outgoing follow request to that user."
           }
         },
         {
-          "name": "Get User Friends",
+          "name": "Incoming Follow Requests",
           "request": {
-            "auth": { "type": "noauth" },
             "method": "GET",
-            "url": "{{baseUrl}}/users/{{targetUserId}}/friends"
+            "url": "{{baseUrl}}/follow-requests",
+            "description": "Lists pending follow requests received by the authenticated user. Used when the account is closed and other users request to follow."
+          }
+        },
+        {
+          "name": "Outgoing Follow Requests",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/follow-requests/sent",
+            "description": "Lists pending follow requests sent by the authenticated user to closed accounts."
+          }
+        },
+        {
+          "name": "Accept Follow Request",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/follow-requests/{{followRequestId}}/accept",
+            "description": "Accepts an incoming follow request and creates the follow relationship. Only the target user of a closed account can accept."
+          }
+        },
+        {
+          "name": "Reject Follow Request",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/follow-requests/{{followRequestId}}/reject",
+            "description": "Rejects an incoming follow request without creating a follow relationship."
+          }
+        },
+        {
+          "name": "Get User Followers",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/users/{{targetUserId}}/followers",
+            "description": "Lists follow records for users who follow `targetUserId`. Blocked relationships are filtered out.",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Get User Following",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/users/{{targetUserId}}/following",
+            "description": "Lists follow records for users that `targetUserId` follows. Blocked relationships are filtered out.",
+            "auth": {
+              "type": "noauth"
+            }
           }
         },
         {
           "name": "Block User",
           "request": {
             "method": "POST",
-            "url": "{{baseUrl}}/users/{{targetUserId}}/block"
+            "url": "{{baseUrl}}/users/{{targetUserId}}/block",
+            "description": "Blocks `targetUserId` for the authenticated user. Blocking prevents follow and message interactions with that user."
           }
         },
         {
           "name": "Unblock User",
           "request": {
             "method": "DELETE",
-            "url": "{{baseUrl}}/users/{{targetUserId}}/block"
+            "url": "{{baseUrl}}/users/{{targetUserId}}/block",
+            "description": "Removes the authenticated user block for `targetUserId`."
           }
         },
         {
           "name": "List Blocks",
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/blocks"
+            "url": "{{baseUrl}}/blocks",
+            "description": "Lists users blocked by the authenticated user."
           }
         }
       ]
@@ -517,135 +729,169 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"nickname\": \"postman_community\",\n  \"title\": \"Postman Community\",\n  \"access\": \"open\",\n  \"description\": \"Created from Postman\",\n  \"bio\": \"API testing\"\n}"
             },
-            "url": "{{baseUrl}}/communities/"
+            "url": "{{baseUrl}}/communities/",
+            "description": "Creates a new community owned by the authenticated user. `access` controls whether joining is immediate (`open`) or request-based (`closed`)."
           }
         },
         {
           "name": "Get Community",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "GET",
-            "url": "{{baseUrl}}/communities/{{communityId}}"
+            "url": "{{baseUrl}}/communities/{{communityId}}",
+            "description": "Fetches community details by `communityId`. Returns 404 when the community does not exist."
           }
         },
         {
           "name": "Update Community",
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"title\": \"Updated Community\",\n  \"bio\": \"Updated from Postman\"\n}"
             },
-            "url": "{{baseUrl}}/communities/{{communityId}}"
+            "url": "{{baseUrl}}/communities/{{communityId}}",
+            "description": "Updates community metadata. Moderators can update basic profile fields; owner-only fields such as nickname or access require owner permissions."
           }
         },
         {
           "name": "Join Community",
           "request": {
             "method": "POST",
-            "url": "{{baseUrl}}/communities/{{communityId}}/join"
+            "url": "{{baseUrl}}/communities/{{communityId}}/join",
+            "description": "Joins an open community or creates a join request for a closed community as the authenticated user."
           }
         },
         {
           "name": "Leave Community",
           "request": {
             "method": "POST",
-            "url": "{{baseUrl}}/communities/{{communityId}}/leave"
+            "url": "{{baseUrl}}/communities/{{communityId}}/leave",
+            "description": "Leaves `communityId` as the authenticated member. Community owners cannot leave their own community through this endpoint."
           }
         },
         {
           "name": "Community Readable Posts",
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/communities/{{communityId}}/posts?lng={{lng}}&lat={{lat}}"
+            "url": "{{baseUrl}}/communities/{{communityId}}/posts?lng={{lng}}&lat={{lat}}",
+            "description": "Returns posts from `communityId` that the authenticated user can read from the provided coordinates, including distance-based readability checks."
           }
         },
         {
           "name": "Community Map Points",
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/communities/{{communityId}}/map-posts"
+            "url": "{{baseUrl}}/communities/{{communityId}}/map-posts",
+            "description": "Returns lightweight map points for posts in `communityId` visible to the authenticated user."
           }
         },
         {
           "name": "Delete Community Post",
           "request": {
             "method": "DELETE",
-            "url": "{{baseUrl}}/communities/{{communityId}}/posts/{{postId}}"
+            "url": "{{baseUrl}}/communities/{{communityId}}/posts/{{postId}}",
+            "description": "Deletes `postId` from `communityId` using community moderation permissions. Intended for moderators or owners."
           }
         },
         {
           "name": "List Community Requests",
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/communities/{{communityId}}/requests"
+            "url": "{{baseUrl}}/communities/{{communityId}}/requests",
+            "description": "Lists pending join requests for `communityId`. Requires community moderation permissions."
           }
         },
         {
           "name": "Accept Community Request",
           "request": {
             "method": "POST",
-            "url": "{{baseUrl}}/communities/{{communityId}}/requests/{{communityRequestId}}/accept"
+            "url": "{{baseUrl}}/communities/{{communityId}}/requests/{{communityRequestId}}/accept",
+            "description": "Accepts `communityRequestId` for `communityId` and adds the requester as a community member. Requires moderation permissions."
           }
         },
         {
           "name": "Reject Community Request",
           "request": {
             "method": "POST",
-            "url": "{{baseUrl}}/communities/{{communityId}}/requests/{{communityRequestId}}/reject"
+            "url": "{{baseUrl}}/communities/{{communityId}}/requests/{{communityRequestId}}/reject",
+            "description": "Rejects `communityRequestId` for `communityId`. Requires moderation permissions."
           }
         },
         {
           "name": "Add Moderator",
           "request": {
             "method": "POST",
-            "url": "{{baseUrl}}/communities/{{communityId}}/moderators/{{targetUserId}}"
+            "url": "{{baseUrl}}/communities/{{communityId}}/moderators/{{targetUserId}}",
+            "description": "Promotes `targetUserId` to moderator in `communityId`. The target user must already be a community member and the caller must have permission."
           }
         },
         {
           "name": "Remove Moderator",
           "request": {
             "method": "DELETE",
-            "url": "{{baseUrl}}/communities/{{communityId}}/moderators/{{targetUserId}}"
+            "url": "{{baseUrl}}/communities/{{communityId}}/moderators/{{targetUserId}}",
+            "description": "Removes moderator role from `targetUserId` in `communityId`. Requires permission from the community owner or authorized moderator flow."
           }
         },
         {
           "name": "Ban User",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"reason\": \"spam\"\n}"
             },
-            "url": "{{baseUrl}}/communities/{{communityId}}/bans/{{targetUserId}}"
+            "url": "{{baseUrl}}/communities/{{communityId}}/bans/{{targetUserId}}",
+            "description": "Bans `targetUserId` from `communityId` with an optional reason. Moderation rules prevent banning the owner and restrict banning moderators."
           }
         },
         {
           "name": "Unban User",
           "request": {
             "method": "DELETE",
-            "url": "{{baseUrl}}/communities/{{communityId}}/bans/{{targetUserId}}"
+            "url": "{{baseUrl}}/communities/{{communityId}}/bans/{{targetUserId}}",
+            "description": "Removes the community ban for `targetUserId` in `communityId`."
           }
         },
         {
           "name": "List Bans",
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/communities/{{communityId}}/bans"
+            "url": "{{baseUrl}}/communities/{{communityId}}/bans",
+            "description": "Lists banned users for `communityId`. Requires community moderation permissions."
           }
         },
         {
           "name": "Delete Community",
           "request": {
             "method": "DELETE",
-            "url": "{{baseUrl}}/communities/{{communityId}}"
+            "url": "{{baseUrl}}/communities/{{communityId}}",
+            "description": "Deletes `communityId`. Only the community owner can delete a community."
           }
         }
       ]
@@ -669,38 +915,52 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"type\": \"private\",\n  \"members\": [\"{{targetUserId}}\"]\n}"
             },
-            "url": "{{baseUrl}}/conversations"
+            "url": "{{baseUrl}}/conversations",
+            "description": "Creates a private or group conversation. The authenticated user is added to `members` automatically if omitted; blocked users are rejected."
           }
         },
         {
           "name": "List Conversations",
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/conversations"
+            "url": "{{baseUrl}}/conversations",
+            "description": "Lists conversations where the authenticated user is a member."
           }
         },
         {
           "name": "List Messages",
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/conversations/{{conversationId}}/messages"
+            "url": "{{baseUrl}}/conversations/{{conversationId}}/messages",
+            "description": "Lists messages for `conversationId` when the authenticated user is a member and the conversation is not blocked."
           }
         },
         {
           "name": "Send Message",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"text\": \"Hello from Postman\",\n  \"attachments\": []\n}"
             },
-            "url": "{{baseUrl}}/conversations/{{conversationId}}/messages"
+            "url": "{{baseUrl}}/conversations/{{conversationId}}/messages",
+            "description": "Sends a text message with optional attachments to `conversationId` as the authenticated member. Blocked conversations or non-members are rejected."
           }
         }
       ]
@@ -712,19 +972,26 @@
           "name": "Update Location",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"lng\": {{lng}},\n  \"lat\": {{lat}}\n}"
             },
-            "url": "{{baseUrl}}/location/update"
+            "url": "{{baseUrl}}/location/update",
+            "description": "Updates the authenticated user current coordinates. The API stores fresh location in Redis and syncs to MongoDB with debounce."
           }
         },
         {
-          "name": "Friends Locations",
+          "name": "Following Locations",
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/location/friends"
+            "url": "{{baseUrl}}/location/following",
+            "description": "Returns current known locations for users followed by the authenticated user."
           }
         }
       ]
@@ -737,7 +1004,7 @@
           "request": {
             "method": "GET",
             "url": "{{wsUrl}}/ws?token={{accessToken}}",
-            "description": "Use this URL in Postman's WebSocket tab. Example message: {\"event\":\"typing:start\",\"data\":{\"conversationId\":\"{{conversationId}}\"}}"
+            "description": "WebSocket connection URL for realtime events. Connect with `accessToken`; supports typing events from the client and server-pushed location:update, location:following_updated, message:new, and notification:new events."
           }
         }
       ]

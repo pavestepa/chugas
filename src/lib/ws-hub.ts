@@ -1,7 +1,7 @@
 interface WsMessage {
   event:
     | "location:update"
-    | "location:friend_updated"
+    | "location:following_updated"
     | "message:new"
     | "typing:start"
     | "typing:stop"
@@ -63,7 +63,7 @@ export const wsHub = new WsHub();
 export function isWsEvent(value: string): value is WsEvent {
   return [
     "location:update",
-    "location:friend_updated",
+    "location:following_updated",
     "message:new",
     "typing:start",
     "typing:stop",

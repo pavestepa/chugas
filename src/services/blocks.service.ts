@@ -1,12 +1,7 @@
-import { FriendRequestModel } from "@/schemas/friend-request.schema";
-import { FriendshipModel } from "@/schemas/friendship.schema";
+import { FollowRequestModel } from "@/schemas/follow-request.schema";
+import { FollowModel } from "@/schemas/follow.schema";
 import { toUserBlockJson, UserBlockModel } from "@/schemas/user-block.schema";
-
-function friendshipPair(userId: string, friendId: string) {
-  return userId < friendId
-    ? { userA: userId, userB: friendId }
-    : { userA: friendId, userB: userId };
-}
+import { UserModel } from "@/schemas/user.schema";
 
 export const BlocksService = {
   block: async (blockerId: string, blockedId: string) => {
@@ -20,16 +15,42 @@ export const BlocksService = {
       { upsert: true, new: true, runValidators: true }
     );
 
+    const follows = await FollowModel.find({
+      $or: [
+        { followerId: blockerId, followingId: blockedId },
+        { followerId: blockedId, followingId: blockerId },
+      ],
+    }).select("followerId followingId");
+
     await Promise.all([
-      FriendshipModel.findOneAndDelete(friendshipPair(blockerId, blockedId)),
-      FriendRequestModel.deleteMany({
+      follows.length > 0
+        ? FollowModel.deleteMany({
+            _id: { $in: follows.map((follow) => follow._id) },
+          })
+        : Promise.resolve(),
+      FollowRequestModel.deleteMany({
         status: "pending",
         $or: [
-          { fromUserId: blockerId, toUserId: blockedId },
-          { fromUserId: blockedId, toUserId: blockerId },
+          { followerId: blockerId, followingId: blockedId },
+          { followerId: blockedId, followingId: blockerId },
         ],
       }),
     ]);
+
+    if (follows.length > 0) {
+      await Promise.all(
+        follows.flatMap((follow) => [
+          UserModel.updateOne(
+            { _id: follow.followerId },
+            { $inc: { followingCount: -1 } }
+          ),
+          UserModel.updateOne(
+            { _id: follow.followingId },
+            { $inc: { followersCount: -1 } }
+          ),
+        ])
+      );
+    }
 
     return { block: toUserBlockJson(block) };
   },
