@@ -74,8 +74,8 @@ function bboxFromCenter(center: Coordinates, radiusMeters: number): BBox {
 function mapPoint(post: Post): MapPoint {
   return {
     postId: post.id,
-    type: post.type as PostType,
-    visibility: post.visibility as PostVisibility,
+    type: post.type,
+    visibility: post.visibility,
     authorId: post.authorId,
     expiresAt: post.expiresAt,
     secondsLeft: secondsUntil(post.expiresAt),
@@ -85,7 +85,7 @@ function mapPoint(post: Post): MapPoint {
 }
 
 function readablePost(post: Post): ReadablePost {
-  return toPostJson(post) as ReadablePost;
+  return toPostJson(post);
 }
 
 @Injectable()

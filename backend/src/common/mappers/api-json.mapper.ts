@@ -14,11 +14,11 @@ import type {
   UserBlock,
 } from '@prisma/client';
 
-type WithId = { id: string };
+interface WithId { id: string }
 
 function baseEntity<T extends WithId>(entity: T): Omit<T, 'id'> & { _id: string } {
   const { id, ...rest } = entity;
-  return { _id: id, ...rest } as Omit<T, 'id'> & { _id: string };
+  return { _id: id, ...rest };
 }
 
 export function toUserJson(user: User) {
