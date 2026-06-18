@@ -20,7 +20,6 @@ import { FollowsService } from '../follows/follows.service';
 import type {
   MapPoint,
   PostType,
-  PostVisibility,
   ReadablePost,
 } from './dto/posts.dto';
 
@@ -264,7 +263,7 @@ export class PostsService {
 
   async mapPoints(filters: MapPostFilters) {
     const now = new Date();
-    let geoWhere: Record<string, unknown> | null = null;
+    let geoWhere: Record<string, unknown>;
     let centerFilter: Coordinates | null = null;
     let radiusFilter: number | null = null;
 

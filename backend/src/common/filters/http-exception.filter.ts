@@ -18,12 +18,12 @@ export class HttpExceptionFilter implements ExceptionFilter {
       const status = exception.getStatus();
       const exceptionResponse = exception.getResponse();
 
-      if (typeof exceptionResponse === 'object' && exceptionResponse !== null) {
+      if (typeof exceptionResponse === 'object') {
         response.status(status).send(exceptionResponse);
         return;
       }
 
-      response.status(status).send({ error: String(exceptionResponse) });
+      response.status(status).send({ error: exceptionResponse });
       return;
     }
 

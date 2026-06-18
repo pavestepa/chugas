@@ -22,7 +22,8 @@ function baseEntity<T extends WithId>(entity: T): Omit<T, 'id'> & { _id: string 
 }
 
 export function toUserJson(user: User) {
-  const { passwordHash: _passwordHash, id, ...rest } = user;
+  const { id, passwordHash, ...rest } = user;
+  void passwordHash;
   return { _id: id, ...rest };
 }
 

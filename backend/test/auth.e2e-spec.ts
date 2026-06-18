@@ -1,8 +1,8 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, UnprocessableEntityException, ValidationPipe } from '@nestjs/common';
+import { UnprocessableEntityException, ValidationPipe } from '@nestjs/common';
+import { Test, type TestingModule } from '@nestjs/testing';
 import {
   FastifyAdapter,
-  NestFastifyApplication,
+  type NestFastifyApplication,
 } from '@nestjs/platform-fastify';
 
 import { AppModule } from '../src/app.module';
@@ -42,27 +42,30 @@ describe('Auth (e2e)', () => {
   });
 
   it('POST /auth/register creates user without tokens', async () => {
-    const email = `test-${Date.now()}@example.com`;
+    const email = `test-${String(Date.now())}@example.com`;
     const response = await app.inject({
       method: 'POST',
       url: '/auth/register',
       payload: {
         email,
-        username: `user_${Date.now()}`,
+        username: `user_${String(Date.now())}`,
         password: 'password123',
       },
     });
 
     expect(response.statusCode).toBe(201);
-    const body = response.json() as { user: { _id: string; email: string } };
-    expect(body.user.email).toBe(email);
-    expect(body.user._id).toBeDefined();
+    expect(response.json()).toMatchObject({
+      user: {
+        email,
+        _id: expect.any(String),
+      },
+    });
   });
 
   it('POST /auth/login returns tokens', async () => {
-    const email = `login-${Date.now()}@example.com`;
+    const email = `login-${String(Date.now())}@example.com`;
     const password = 'password123';
-    const username = `login_${Date.now()}`;
+    const username = `login_${String(Date.now())}`;
 
     await app.inject({
       method: 'POST',
@@ -77,13 +80,10 @@ describe('Auth (e2e)', () => {
     });
 
     expect(response.statusCode).toBe(200);
-    const body = response.json() as {
-      user: { _id: string };
-      accessToken: string;
-      refreshToken: string;
-    };
-    expect(body.accessToken).toBeDefined();
-    expect(body.refreshToken).toBeDefined();
-    expect(body.user._id).toBeDefined();
+    expect(response.json()).toMatchObject({
+      user: { _id: expect.any(String) },
+      accessToken: expect.any(String),
+      refreshToken: expect.any(String),
+    });
   });
 });

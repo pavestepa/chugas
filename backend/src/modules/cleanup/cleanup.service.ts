@@ -28,7 +28,7 @@ export class CleanupService {
     await Promise.all(
       expiredPosts.map((post) => this.cascadeService.deletePost(post.id)),
     );
-    this.logger.log(`Cleaned up ${expiredPosts.length} expired posts`);
+    this.logger.log(`Cleaned up ${String(expiredPosts.length)} expired posts`);
   }
 
   @Cron(CronExpression.EVERY_5_MINUTES)
@@ -39,7 +39,7 @@ export class CleanupService {
     });
 
     if (result.count > 0) {
-      this.logger.log(`Cleaned up ${result.count} expired messages`);
+      this.logger.log(`Cleaned up ${String(result.count)} expired messages`);
     }
   }
 }

@@ -34,7 +34,7 @@ export class WsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
 
       const payload = await this.jwtService.verifyAsync<{ sub: string }>(token);
-      if (!payload?.sub) {
+      if (!payload.sub) {
         client.close(4401, 'Unauthorized');
         return;
       }
