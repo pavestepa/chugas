@@ -1,0 +1,39 @@
+{
+  "folders": [
+    {
+      "name": "chugas",
+      "path": "."
+    },
+    {
+      "name": "api",
+      "path": "backend"
+    },
+    {
+      "name": "mobile",
+      "path": "app"
+    },
+    {
+      "name": "docs",
+      "path": "docs"
+    }
+  ],
+  "settings": {
+    "search.exclude": {
+      "**/node_modules": true,
+      "app/ios": true,
+      "app/android": true,
+      "app/.expo": true
+    },
+    "eslint.workingDirectories": [
+      { "directory": "backend", "changeProcessCWD": true },
+      { "directory": "app", "changeProcessCWD": true }
+    ]
+  },
+  "extensions": {
+    "recommendations": [
+      "expo.vscode-expo-tools",
+      "dbaeumer.vscode-eslint",
+      "esbenp.prettier-vscode"
+    ]
+  }
+}

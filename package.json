@@ -1,33 +1,18 @@
 {
-  "name": "chugas",
-  "version": "1.0.50",
+  "name": "chugas-monorepo",
+  "private": true,
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "bun run --watch src/index.ts",
-    "typecheck": "tsc --noEmit",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
-    "docker:up": "docker compose up -d",
-    "docker:down": "docker compose down",
-    "migrate:friends-to-follows": "bun run scripts/migrate-friends-to-follows.ts"
-  },
-  "dependencies": {
-    "@elysiajs/jwt": "^1.4.2",
-    "@elysiajs/openapi": "^1.4.15",
-    "elysia": "latest",
-    "ioredis": "^5.11.0",
-    "mongoose": "^9.6.3"
-  },
-  "devDependencies": {
-    "@eslint/js": "^10.0.1",
-    "bun-types": "latest",
-    "eslint": "^10.4.0",
-    "eslint-config-prettier": "^10.1.8",
-    "prettier": "^3.8.3",
-    "typescript": "^6.0.3",
-    "typescript-eslint": "^8.60.0"
-  },
-  "module": "src/index.js"
+    "dev:backend": "npm run dev --prefix backend",
+    "dev:app": "npm run dev --prefix app",
+    "docker:up": "npm run docker:up --prefix backend",
+    "docker:down": "npm run docker:down --prefix backend",
+    "setup": "npm run docker:up --prefix backend && sleep 3 && npm run prisma:deploy --prefix backend && npm run seed:default-user --prefix backend",
+    "seed:default-user": "npm run seed:default-user --prefix backend",
+    "postman:types": "python3 backend/scripts/enrich-postman-types.py",
+    "typecheck": "npm run typecheck:backend && npm run typecheck:app",
+    "typecheck:backend": "npm run typecheck --prefix backend",
+    "typecheck:app": "npm run typecheck --prefix app",
+    "lint:backend": "npm run lint --prefix backend",
+    "lint:app": "npm run lint --prefix app"
+  }
 }

@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "chugas API",
-    "description": "Postman collection for the chugas Elysia API. Import together with `chugas Local` environment.",
+    "description": "# chugas API\n\nPostman collection for the chugas Elysia API. Import together with `chugas Local` environment.\n\nThis document is the source of truth for **request/response shapes** when building mobile frontend entities and models.\n\n## Conventions\n\n- `_id`, `authorId`, `userId`, etc. are MongoDB ObjectIds serialized as **strings**\n- `createdAt`, `expiresAt`, `updatedAt` are **ISO 8601 date strings** in JSON\n- `GeoPoint.coordinates` is `[lng, lat]` — index 0 = longitude, index 1 = latitude\n- Authenticated requests use header `Authorization: Bearer {{accessToken}}`\n- Empty success bodies use HTTP **204** with no JSON body\n- Errors usually return `{ error: string }` plus optional fields\n\n## Primitive & shared types\n\n```typescript\ntype ObjectIdString = string;\ntype ISODateString = string;\n\ntype AccountType = \"open\" | \"closed\";\ntype PostType = \"public\" | \"followers\" | \"community\";\ntype PostVisibility = \"public\" | \"followers\" | \"community\";\ntype CommunityAccess = \"open\" | \"closed\";\ntype RequestStatus = \"pending\" | \"accepted\" | \"rejected\";\ntype ConversationType = \"private\" | \"group\";\ntype CommunityRole = \"member\" | \"moderator\" | \"owner\";\ntype AuthSessionStatus = \"pending\" | \"email_verified\" | \"completed\";\ntype AuthSessionMode = \"register\" | \"password_setup\" | \"password_reset\";\n\ninterface GeoPoint {\n  type: \"Point\";\n  coordinates: [number, number]; // [lng, lat]\n}\n\ninterface CoordinatesInput {\n  lng: number; // -180..180\n  lat: number; // -90..90\n}\n\ninterface ErrorResponse {\n  error: string;\n  resetInSeconds?: number; // 429 rate limit\n  point?: MapPoint; // 403 when post is too far\n  request?: FollowRequest; // 409 duplicate follow request\n}\n\ninterface RateLimitError {\n  error: \"Rate limit exceeded\";\n  resetInSeconds: number;\n}\n```\n\n## Core entities\n\n```typescript\ninterface User {\n  _id: ObjectIdString;\n  username: string;\n  email: string;\n  avatarUrl: string;\n  bio: string;\n  followersCount: number;\n  followingCount: number;\n  accountType: AccountType;\n  createdAt: ISODateString;\n  updatedAt: ISODateString;\n}\n\ninterface Post {\n  _id: ObjectIdString;\n  authorId: ObjectIdString;\n  type: PostType;\n  visibility: PostVisibility;\n  communityId?: ObjectIdString;\n  text: string;\n  media: string[];\n  location: GeoPoint;\n  createdAt: ISODateString;\n  expiresAt: ISODateString;\n}\n\ninterface MapPoint {\n  postId: ObjectIdString;\n  type: PostType;\n  visibility: PostVisibility;\n  authorId: ObjectIdString;\n  communityId?: ObjectIdString;\n  location?: GeoPoint | null;\n  expiresAt: ISODateString;\n  secondsLeft: number;\n}\n\ninterface Follow {\n  _id: ObjectIdString;\n  followerId: ObjectIdString;\n  followingId: ObjectIdString;\n  createdAt: ISODateString;\n}\n\ninterface FollowRequest {\n  _id: ObjectIdString;\n  followerId: ObjectIdString;\n  followingId: ObjectIdString;\n  status: RequestStatus;\n  createdAt: ISODateString;\n}\n\ninterface UserBlock {\n  _id: ObjectIdString;\n  blockerId: ObjectIdString;\n  blockedId: ObjectIdString;\n  createdAt: ISODateString;\n}\n\ninterface Comment {\n  _id: ObjectIdString;\n  postId: ObjectIdString;\n  authorId: ObjectIdString;\n  text: string;\n  createdAt: ISODateString;\n}\n\ninterface PostLike {\n  _id: ObjectIdString;\n  postId: ObjectIdString;\n  userId: ObjectIdString;\n  createdAt: ISODateString;\n}\n\ninterface Community {\n  _id: ObjectIdString;\n  nickname: string;\n  title: string;\n  description: string;\n  bio: string;\n  avatarUrl: string;\n  ownerId: ObjectIdString;\n  access: CommunityAccess;\n  moderatorIds: ObjectIdString[];\n  membersCount: number;\n  createdAt: ISODateString;\n}\n\ninterface CommunityMember {\n  _id: ObjectIdString;\n  communityId: ObjectIdString;\n  userId: ObjectIdString;\n  role: CommunityRole;\n  createdAt: ISODateString;\n}\n\ninterface CommunityRequest {\n  _id: ObjectIdString;\n  communityId: ObjectIdString;\n  fromUserId: ObjectIdString;\n  status: RequestStatus;\n  createdAt: ISODateString;\n}\n\ninterface CommunityBan {\n  _id: ObjectIdString;\n  communityId: ObjectIdString;\n  userId: ObjectIdString;\n  bannedById: ObjectIdString;\n  reason: string;\n  createdAt: ISODateString;\n}\n\ninterface Conversation {\n  _id: ObjectIdString;\n  type: ConversationType;\n  members: ObjectIdString[];\n  lastMessageAt: ISODateString;\n  createdAt: ISODateString;\n}\n\ninterface MessageAttachment {\n  type: string;\n  url: string;\n}\n\ninterface Message {\n  _id: ObjectIdString;\n  conversationId: ObjectIdString;\n  senderId: ObjectIdString;\n  text: string;\n  attachments: MessageAttachment[];\n  createdAt: ISODateString;\n  expiresAt: ISODateString;\n}\n\ninterface UserLocation {\n  userId: ObjectIdString;\n  lat: number;\n  lng: number;\n  updatedAt: number; // unix seconds\n}\n```\n\n## Auth payloads\n\n```typescript\ninterface AuthTokensResponse {\n  user: User;\n  accessToken: string;\n  refreshToken: string;\n}\n\ninterface EmailSessionStartResponse {\n  sessionId: string;\n  expiresIn: number;\n  email: string;\n  status: AuthSessionStatus;\n}\n\ninterface EmailVerifyResponse {\n  sessionId: string;\n  email: string;\n  mode: AuthSessionMode;\n  status: AuthSessionStatus;\n}\n\ninterface AuthSessionStatusResponse {\n  status: AuthSessionStatus;\n  email: string;\n  mode: AuthSessionMode;\n  expiresIn: number;\n}\n\ninterface PasswordResetRequestResponse {\n  sent: true;\n  expiresIn: number;\n}\n```\n\n## Request bodies\n\n```typescript\ninterface CreatePostBody {\n  type: PostType;\n  text: string;\n  media?: string[];\n  communityId?: ObjectIdString; // required when type = \"community\"\n  location: CoordinatesInput;\n}\n\ninterface CreateCommentBody {\n  text: string; // 1..2000\n}\n\ninterface CreateCommunityBody {\n  nickname: string; // 3..32, [a-zA-Z0-9_]\n  title: string;\n  access: CommunityAccess;\n  description?: string;\n  bio?: string;\n  avatarUrl?: string;\n}\n\ninterface UpdateCommunityBody {\n  nickname?: string;\n  title?: string;\n  description?: string;\n  bio?: string;\n  avatarUrl?: string;\n  access?: CommunityAccess;\n}\n\ninterface UpdateUserBody {\n  username?: string;\n  avatarUrl?: string;\n  bio?: string;\n  accountType?: AccountType;\n}\n\ninterface CreateConversationBody {\n  type: ConversationType;\n  members: ObjectIdString[];\n}\n\ninterface SendMessageBody {\n  text: string;\n  attachments?: MessageAttachment[];\n}\n\ninterface LocationUpdateBody {\n  lat: number;\n  lng: number;\n}\n```\n\n## WebSocket\n\nConnect: `ws://host/ws?token={{accessToken}}`\n\n```typescript\ntype WsEvent =\n  | \"location:update\"\n  | \"location:following_updated\"\n  | \"message:new\"\n  | \"typing:start\"\n  | \"typing:stop\"\n  | \"notification:new\";\n\ninterface WsEnvelope<T = unknown> {\n  event: WsEvent;\n  data: T;\n}\n\n// Client → server (typing only)\ninterface WsTypingPayload {\n  conversationId: ObjectIdString;\n}\n\n// Server → client examples\ninterface WsLocationPayload extends UserLocation {}\ninterface WsMessagePayload extends Message {}\ninterface WsTypingServerPayload {\n  conversationId: ObjectIdString;\n  userId: ObjectIdString;\n}\n```\n\nSee folder **Models & Types** and per-request `## Types` sections for endpoint-specific shapes.\n",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -25,6 +25,174 @@
   ],
   "item": [
     {
+      "name": "Models & Types",
+      "description": "Reference-only TypeScript definitions for frontend/mobile entity modeling. Not API calls.",
+      "item": [
+        {
+          "name": "Core Entities",
+          "description": "Persistent domain objects returned by REST endpoints.",
+          "item": [
+            {
+              "name": "User",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/",
+                "description": "Reference model — `User`\n\n```typescript\ninterface User {\n  _id: ObjectIdString;\n  username: string;\n  email: string;\n  avatarUrl: string;\n  bio: string;\n  followersCount: number;\n  followingCount: number;\n  accountType: AccountType;\n  createdAt: ISODateString;\n  updatedAt: ISODateString;\n}\n```\n\nUsed in: auth responses, `/users/*`, search results."
+              }
+            },
+            {
+              "name": "Post",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/",
+                "description": "Reference model — `Post`\n\n```typescript\ninterface Post {\n  _id: ObjectIdString;\n  authorId: ObjectIdString;\n  type: PostType;\n  visibility: PostVisibility;\n  communityId?: ObjectIdString;\n  text: string;\n  media: string[];\n  location: GeoPoint;\n  createdAt: ISODateString;\n  expiresAt: ISODateString;\n}\n```\n\n`type` and `visibility` are usually aligned. Posts auto-expire via `expiresAt`."
+              }
+            },
+            {
+              "name": "MapPoint",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/",
+                "description": "Reference model — `MapPoint`\n\n```typescript\ninterface MapPoint {\n  postId: ObjectIdString;\n  type: PostType;\n  visibility: PostVisibility;\n  authorId: ObjectIdString;\n  communityId?: ObjectIdString;\n  location?: GeoPoint | null;\n  expiresAt: ISODateString;\n  secondsLeft: number;\n}\n```\n\nLightweight map marker; use `GET /posts/:id` for full post body."
+              }
+            },
+            {
+              "name": "Follow & FollowRequest",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/",
+                "description": "Reference models — social graph\n\n```typescript\ninterface Follow {\n  _id: ObjectIdString;\n  followerId: ObjectIdString;\n  followingId: ObjectIdString;\n  createdAt: ISODateString;\n}\n\ninterface FollowRequest {\n  _id: ObjectIdString;\n  followerId: ObjectIdString;\n  followingId: ObjectIdString;\n  status: RequestStatus;\n  createdAt: ISODateString;\n}\n```\n\n`accountType: \"closed\"` requires `FollowRequest` approval before a `Follow` exists."
+              }
+            },
+            {
+              "name": "Community",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/",
+                "description": "Reference models — communities\n\n```typescript\ninterface Community {\n  _id: ObjectIdString;\n  nickname: string;\n  title: string;\n  description: string;\n  bio: string;\n  avatarUrl: string;\n  ownerId: ObjectIdString;\n  access: CommunityAccess;\n  moderatorIds: ObjectIdString[];\n  membersCount: number;\n  createdAt: ISODateString;\n}\n\ninterface CommunityMember {\n  _id: ObjectIdString;\n  communityId: ObjectIdString;\n  userId: ObjectIdString;\n  role: CommunityRole;\n  createdAt: ISODateString;\n}\n\ninterface CommunityRequest {\n  _id: ObjectIdString;\n  communityId: ObjectIdString;\n  fromUserId: ObjectIdString;\n  status: RequestStatus;\n  createdAt: ISODateString;\n}\n\ninterface CommunityBan {\n  _id: ObjectIdString;\n  communityId: ObjectIdString;\n  userId: ObjectIdString;\n  bannedById: ObjectIdString;\n  reason: string;\n  createdAt: ISODateString;\n}\n```"
+              }
+            },
+            {
+              "name": "Conversation & Message",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/",
+                "description": "Reference models — messaging\n\n```typescript\ninterface Conversation {\n  _id: ObjectIdString;\n  type: ConversationType;\n  members: ObjectIdString[];\n  lastMessageAt: ISODateString;\n  createdAt: ISODateString;\n}\n\ninterface Message {\n  _id: ObjectIdString;\n  conversationId: ObjectIdString;\n  senderId: ObjectIdString;\n  text: string;\n  attachments: MessageAttachment[];\n  createdAt: ISODateString;\n  expiresAt: ISODateString;\n}\n```\n\nBlocked users cannot create conversations or send messages."
+              }
+            }
+          ]
+        },
+        {
+          "name": "Auth Types",
+          "description": "Authentication session and token payloads.",
+          "item": [
+            {
+              "name": "AuthTokensResponse",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/",
+                "description": "```typescript\ninterface AuthTokensResponse {\n  user: User;\n  accessToken: string;\n  refreshToken: string;\n}\n```"
+              }
+            },
+            {
+              "name": "EmailSessionStartResponse",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/",
+                "description": "```typescript\ninterface EmailSessionStartResponse {\n  sessionId: string;\n  expiresIn: number;\n  email: string;\n  status: AuthSessionStatus;\n}\n```"
+              }
+            },
+            {
+              "name": "EmailVerifyResponse",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/",
+                "description": "```typescript\ninterface EmailVerifyResponse {\n  sessionId: string;\n  email: string;\n  mode: AuthSessionMode;\n  status: AuthSessionStatus;\n}\n```"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Realtime Types",
+          "description": "WebSocket event envelopes.",
+          "item": [
+            {
+              "name": "WsEnvelope",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/",
+                "description": "```typescript\ninterface WsEnvelope<T = unknown> {\n  event: WsEvent;\n  data: T;\n}\n```"
+              }
+            },
+            {
+              "name": "WsLocationPayload",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/",
+                "description": "```typescript\ninterface WsLocationPayload {\n  userId: ObjectIdString;\n  lat: number;\n  lng: number;\n  updatedAt: number;\n}\n```"
+              }
+            },
+            {
+              "name": "WsTypingPayload",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/",
+                "description": "Client sends:\n```typescript\n{ event: \"typing:start\" | \"typing:stop\", data: { conversationId: ObjectIdString } }\n```\n\nServer broadcasts to other members:\n```typescript\n{ event: \"typing:start\" | \"typing:stop\", data: { conversationId: ObjectIdString, userId: ObjectIdString } }\n```"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "Health",
       "item": [
         {
@@ -35,7 +203,7 @@
             },
             "method": "GET",
             "url": "{{baseUrl}}/",
-            "description": "Health check for the API root. Returns basic service metadata and confirms that the server is running."
+            "description": "Health check for the API root. Returns basic service metadata and confirms that the server is running.\n\n---\n\n## Types\n### Response\n```typescript\n{ name: string; status: string; docs: string }\n```\n### Errors\nNone\n"
           }
         },
         {
@@ -46,10 +214,11 @@
             },
             "method": "GET",
             "url": "{{baseUrl}}/swagger",
-            "description": "Opens the generated Swagger/OpenAPI documentation for the chugas API."
+            "description": "Opens the generated Swagger/OpenAPI documentation for the chugas API.\n\n---\n\n## Types\n### Response\n```typescript\nHTML page (OpenAPI/Swagger UI)\n```\n### Errors\nNone\n"
           }
         }
-      ]
+      ],
+      "description": "Service health. Response types listed per request."
     },
     {
       "name": "Auth",
@@ -84,7 +253,7 @@
               "raw": "{\n  \"identifier\": \"{{email}}\"\n}"
             },
             "url": "{{baseUrl}}/auth/email/start",
-            "description": "Starts email-based authentication. Sends a 6-digit code to the email or username in `identifier` and returns a short-lived `sessionId` used by the verification step."
+            "description": "Starts email-based authentication. Sends a 6-digit code to the email or username in `identifier` and returns a short-lived `sessionId` used by the verification step.\n\n---\n\n## Types\n### Request body\n```typescript\n{ identifier: string } // email or username, 3..254 chars\n```\n### Response\n```typescript\nEmailSessionStartResponse\n```\n### Errors\n404 `{ error: string }` | 429 RateLimitError\n"
           }
         },
         {
@@ -117,7 +286,7 @@
               "raw": "{\n  \"sessionId\": \"{{sessionId}}\",\n  \"code\": \"{{authCode}}\"\n}"
             },
             "url": "{{baseUrl}}/auth/email/verify",
-            "description": "Verifies the 6-digit code for an email auth session. On success, confirms the session and keeps `sessionId` available for password setup or session status checks."
+            "description": "Verifies the 6-digit code for an email auth session. On success, confirms the session and keeps `sessionId` available for password setup or session status checks.\n\n---\n\n## Types\n### Request body\n```typescript\n{ sessionId: string; code: string } // code: 6 digits\n```\n### Response\n```typescript\nEmailVerifyResponse\n```\n### Errors\n401 invalid code | 404 session | 429\n"
           }
         },
         {
@@ -152,7 +321,7 @@
               "raw": "{\n  \"sessionId\": \"{{sessionId}}\",\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}"
             },
             "url": "{{baseUrl}}/auth/password/setup",
-            "description": "Completes registration after email verification. Creates or updates the user credentials with `username` and `password`, then returns `user`, `accessToken`, and `refreshToken`."
+            "description": "Completes registration after email verification. Creates or updates the user credentials with `username` and `password`, then returns `user`, `accessToken`, and `refreshToken`.\n\n---\n\n## Types\n### Request body\n```typescript\n{ sessionId: string; username: string; password: string }\n```\n### Response\n```typescript\nAuthTokensResponse\n```\n### Errors\n404 session | 409 username taken | 429\n"
           }
         },
         {
@@ -187,7 +356,7 @@
               "raw": "{\n  \"identifier\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
             },
             "url": "{{baseUrl}}/auth/login",
-            "description": "Authenticates an existing user by email or username plus password. Returns the user profile and fresh access/refresh tokens for authenticated requests."
+            "description": "Authenticates an existing user by email or username plus password. Returns the user profile and fresh access/refresh tokens for authenticated requests.\n\n---\n\n## Types\n### Request body\n```typescript\n{ identifier: string; password: string }\n```\n### Response\n```typescript\nAuthTokensResponse\n```\n### Errors\n401 invalid credentials | 429\n"
           }
         },
         {
@@ -198,7 +367,7 @@
             },
             "method": "GET",
             "url": "{{baseUrl}}/auth/session/{{sessionId}}",
-            "description": "Reads the current status of an email auth session by `sessionId`, for example to check whether it is verified or expired."
+            "description": "Reads the current status of an email auth session by `sessionId`, for example to check whether it is verified or expired.\n\n---\n\n## Types\n### Response\n```typescript\nAuthSessionStatusResponse\n```\n### Errors\n404 session\n"
           }
         },
         {
@@ -219,7 +388,7 @@
               "raw": "{\n  \"identifier\": \"{{email}}\"\n}"
             },
             "url": "{{baseUrl}}/auth/password/reset/request",
-            "description": "Starts password reset for an existing account. Sends an email link when the user exists; copy the link query params into `resetSessionId` and `resetCode` for the confirm step."
+            "description": "Starts password reset for an existing account. Sends an email link when the user exists; copy the link query params into `resetSessionId` and `resetCode` for the confirm step.\n\n---\n\n## Types\n### Request body\n```typescript\n{ identifier: string }\n```\n### Response\n```typescript\nPasswordResetRequestResponse\n```\n### Errors\n429\n"
           }
         },
         {
@@ -254,7 +423,7 @@
               "raw": "{\n  \"sessionId\": \"{{resetSessionId}}\",\n  \"code\": \"{{resetCode}}\",\n  \"password\": \"{{newPassword}}\"\n}"
             },
             "url": "{{baseUrl}}/auth/password/reset/confirm",
-            "description": "Finishes password reset using `resetSessionId`, `resetCode`, and a new password. On success, returns the user profile and new access/refresh tokens."
+            "description": "Finishes password reset using `resetSessionId`, `resetCode`, and a new password. On success, returns the user profile and new access/refresh tokens.\n\n---\n\n## Types\n### Request body\n```typescript\n{ sessionId: string; code: string; password: string }\n```\n### Response\n```typescript\nAuthTokensResponse\n```\n### Errors\n401 invalid code | 404 session | 429\n"
           }
         },
         {
@@ -289,7 +458,7 @@
               "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
             },
             "url": "{{baseUrl}}/auth/refresh",
-            "description": "Rotates a valid refresh token and returns a new access token, a new refresh token, and the current user. Use this when `accessToken` expires."
+            "description": "Rotates a valid refresh token and returns a new access token, a new refresh token, and the current user. Use this when `accessToken` expires.\n\n---\n\n## Types\n### Request body\n```typescript\n{ refreshToken: string }\n```\n### Response\n```typescript\nAuthTokensResponse\n```\n### Errors\n401 invalid refresh token\n"
           }
         },
         {
@@ -307,10 +476,11 @@
               "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
             },
             "url": "{{baseUrl}}/auth/logout",
-            "description": "Revokes the provided refresh token and flushes the authenticated user location cache. After this request, the old refresh token cannot be used again."
+            "description": "Revokes the provided refresh token and flushes the authenticated user location cache. After this request, the old refresh token cannot be used again.\n\n---\n\n## Types\n### Request body\n```typescript\n{ refreshToken: string }\n```\n### Response\n```typescript\n{ success: true }\n```\n### Errors\nNone\n"
           }
         }
-      ]
+      ],
+      "description": "Registration, login, password reset. Uses Auth* types from collection description."
     },
     {
       "name": "Users",
@@ -323,7 +493,7 @@
             },
             "method": "GET",
             "url": "{{baseUrl}}/users/search?q={{username}}",
-            "description": "Searches users by the `q` query string. This is a public lookup endpoint and is useful for finding a `targetUserId` by username."
+            "description": "Searches users by the `q` query string. This is a public lookup endpoint and is useful for finding a `targetUserId` by username.\n\n---\n\n## Types\n### Query params\n```typescript\nq: string (min 1 char)\n```\n### Response\n```typescript\nUser[]\n```\n### Errors\nValidation error if q missing\n"
           }
         },
         {
@@ -334,7 +504,7 @@
             },
             "method": "GET",
             "url": "{{baseUrl}}/users/{{targetUserId}}",
-            "description": "Fetches a public user profile by `targetUserId`. Returns 404 when the user does not exist."
+            "description": "Fetches a public user profile by `targetUserId`. Returns 404 when the user does not exist.\n\n---\n\n## Types\n### Response\n```typescript\nUser\n```\n### Errors\n404 `{ error: string }`\n"
           }
         },
         {
@@ -352,7 +522,7 @@
               "raw": "{\n  \"bio\": \"Hello from Postman\",\n  \"avatarUrl\": \"https://example.com/avatar.png\",\n  \"accountType\": \"closed\"\n}"
             },
             "url": "{{baseUrl}}/users/me",
-            "description": "Updates the authenticated user profile. Set `accountType` to `closed` to require follow requests, or `open` for instant follows."
+            "description": "Updates the authenticated user profile. Set `accountType` to `closed` to require follow requests, or `open` for instant follows.\n\n---\n\n## Types\n### Request body\n```typescript\nUpdateUserBody (all fields optional)\n```\n### Response\n```typescript\nUser\n```\n### Errors\n404\n"
           }
         },
         {
@@ -360,7 +530,7 @@
           "request": {
             "method": "PATCH",
             "url": "{{baseUrl}}/users/me",
-            "description": "Switches the authenticated account to closed mode so new followers must send a follow request.",
+            "description": "Switches the authenticated account to closed mode so new followers must send a follow request.\n\n---\n\n## Types\n### Request body\n```typescript\n{ accountType: \"closed\" }\n```\n### Response\n```typescript\nUser\n```\n### Errors\n404\n",
             "header": [
               {
                 "key": "Content-Type",
@@ -378,7 +548,7 @@
           "request": {
             "method": "PATCH",
             "url": "{{baseUrl}}/users/me",
-            "description": "Switches the authenticated account to open mode so new followers are added immediately.",
+            "description": "Switches the authenticated account to open mode so new followers are added immediately.\n\n---\n\n## Types\n### Request body\n```typescript\n{ accountType: \"open\" }\n```\n### Response\n```typescript\nUser\n```\n### Errors\n404\n",
             "header": [
               {
                 "key": "Content-Type",
@@ -391,7 +561,8 @@
             }
           }
         }
-      ]
+      ],
+      "description": "User profile CRUD and search. Entity: `User`."
     },
     {
       "name": "Posts",
@@ -423,7 +594,7 @@
               "raw": "{\n  \"type\": \"public\",\n  \"text\": \"Hello nearby world\",\n  \"media\": [],\n  \"location\": {\n    \"lng\": {{lng}},\n    \"lat\": {{lat}}\n  }\n}"
             },
             "url": "{{baseUrl}}/posts/",
-            "description": "Creates an authenticated public post at the provided coordinates. Public posts can appear in feed, map, and nearby readable post queries according to visibility rules."
+            "description": "Creates an authenticated public post at the provided coordinates. Public posts can appear in feed, map, and nearby readable post queries according to visibility rules.\n\n---\n\n## Types\n### Request body\n```typescript\nCreatePostBody with type: \"public\"\n```\n### Response\n```typescript\nPost\n```\n### Errors\n403 forbidden | 429\n"
           }
         },
         {
@@ -431,7 +602,7 @@
           "request": {
             "method": "POST",
             "url": "{{baseUrl}}/posts/",
-            "description": "Creates an authenticated post visible to the author and users who follow the author. This replaces the old followers-only post visibility.",
+            "description": "Creates an authenticated post visible to the author and users who follow the author. This replaces the old followers-only post visibility.\n\n---\n\n## Types\n### Request body\n```typescript\nCreatePostBody with type: \"followers\"\n```\n### Response\n```typescript\nPost\n```\n### Errors\n403 | 429\n",
             "header": [
               {
                 "key": "Content-Type",
@@ -471,7 +642,7 @@
               "raw": "{\n  \"type\": \"community\",\n  \"communityId\": \"{{communityId}}\",\n  \"text\": \"Community post\",\n  \"media\": [],\n  \"location\": {\n    \"lng\": {{lng}},\n    \"lat\": {{lat}}\n  }\n}"
             },
             "url": "{{baseUrl}}/posts/",
-            "description": "Creates an authenticated post inside `communityId` at the provided coordinates. The caller must be allowed to post in that community."
+            "description": "Creates an authenticated post inside `communityId` at the provided coordinates. The caller must be allowed to post in that community.\n\n---\n\n## Types\n### Request body\n```typescript\nCreatePostBody with type: \"community\" and communityId\n```\n### Response\n```typescript\nPost\n```\n### Errors\n400 communityId required | 403 not a member | 429\n"
           }
         },
         {
@@ -479,7 +650,7 @@
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/feed",
-            "description": "Returns the authenticated user feed with posts that are visible to the current user."
+            "description": "Returns the authenticated user feed with posts that are visible to the current user.\n\n---\n\n## Types\n### Response\n```typescript\nPost[]\n```\n### Errors\n401\n"
           }
         },
         {
@@ -487,7 +658,7 @@
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/posts/{{postId}}?lng={{lng}}&lat={{lat}}",
-            "description": "Fetches one post by `postId` for the authenticated user and supplied reader coordinates. The API rejects posts that are not visible or are outside the readable radius."
+            "description": "Fetches one post by `postId` for the authenticated user and supplied reader coordinates. The API rejects posts that are not visible or are outside the readable radius.\n\n---\n\n## Types\n### Query params\n```typescript\nlng: number, lat: number\n```\n### Response\n```typescript\nPost\n```\n### Errors\n404 not found | 403 `{ error: \"Post is outside readable radius\", point: MapPoint }`\n"
           }
         },
         {
@@ -495,10 +666,11 @@
           "request": {
             "method": "DELETE",
             "url": "{{baseUrl}}/posts/{{postId}}",
-            "description": "Deletes `postId` as the authenticated author. Returns no content when deletion succeeds."
+            "description": "Deletes `postId` as the authenticated author. Returns no content when deletion succeeds.\n\n---\n\n## Types\n### Response\n```typescript\n204 empty\n```\n### Errors\n404\n"
           }
         }
-      ]
+      ],
+      "description": "Geo-tagged ephemeral posts. Entities: `Post`, `CreatePostBody`."
     },
     {
       "name": "Map",
@@ -508,7 +680,7 @@
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/map/posts?minLng={{minLng}}&minLat={{minLat}}&maxLng={{maxLng}}&maxLat={{maxLat}}&limit=100",
-            "description": "Returns lightweight map points for posts visible to the authenticated user inside the bounding box defined by min/max longitude and latitude."
+            "description": "Returns lightweight map points for posts visible to the authenticated user inside the bounding box defined by min/max longitude and latitude.\n\n---\n\n## Types\n### Query params\n```typescript\nminLng, minLat, maxLng, maxLat, limit?, type?, communityId?, followingId?\n```\n### Response\n```typescript\nMapPoint[]\n```\n### Errors\n400 viewport required | 401\n"
           }
         },
         {
@@ -516,7 +688,7 @@
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/map/posts?lng={{lng}}&lat={{lat}}&radiusMeters=10000&limit=100",
-            "description": "Returns lightweight map points for posts visible to the authenticated user around `lng`/`lat` within `radiusMeters`."
+            "description": "Returns lightweight map points for posts visible to the authenticated user around `lng`/`lat` within `radiusMeters`.\n\n---\n\n## Types\n### Query params\n```typescript\nlng, lat, radiusMeters?, limit?, type?, communityId?, followingId?\n```\n### Response\n```typescript\nMapPoint[]\n```\n### Errors\n400 | 401\n"
           }
         },
         {
@@ -524,10 +696,11 @@
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/map/posts/nearby?lng={{lng}}&lat={{lat}}&limit=50",
-            "description": "Returns full readable posts near the authenticated user coordinates. This is for nearby lists, not just map markers."
+            "description": "Returns full readable posts near the authenticated user coordinates. This is for nearby lists, not just map markers.\n\n---\n\n## Types\n### Query params\n```typescript\nlng, lat, limit?, type?, communityId?, followingId?\n```\n### Response\n```typescript\nPost[]\n```\n### Errors\n401\n"
           }
         }
-      ]
+      ],
+      "description": "Map markers and nearby readable posts. Entities: `MapPoint`, `Post`."
     },
     {
       "name": "Comments & Likes",
@@ -559,7 +732,7 @@
               "raw": "{\n  \"text\": \"Nice post\"\n}"
             },
             "url": "{{baseUrl}}/posts/{{postId}}/comments",
-            "description": "Adds a comment with `text` to `postId` as the authenticated user and returns the created comment."
+            "description": "Adds a comment with `text` to `postId` as the authenticated user and returns the created comment.\n\n---\n\n## Types\n### Request body\n```typescript\nCreateCommentBody\n```\n### Response\n```typescript\nComment\n```\n### Errors\n401\n"
           }
         },
         {
@@ -570,7 +743,7 @@
             },
             "method": "GET",
             "url": "{{baseUrl}}/posts/{{postId}}/comments",
-            "description": "Lists comments for `postId`. This endpoint does not require authentication in the collection."
+            "description": "Lists comments for `postId`. This endpoint does not require authentication in the collection.\n\n---\n\n## Types\n### Response\n```typescript\nComment[]\n```\n### Errors\nNone\n"
           }
         },
         {
@@ -578,7 +751,7 @@
           "request": {
             "method": "DELETE",
             "url": "{{baseUrl}}/comments/{{commentId}}",
-            "description": "Deletes `commentId` as the authenticated comment owner. Returns no content when deletion succeeds."
+            "description": "Deletes `commentId` as the authenticated comment owner. Returns no content when deletion succeeds.\n\n---\n\n## Types\n### Response\n```typescript\n204 empty\n```\n### Errors\n404\n"
           }
         },
         {
@@ -586,7 +759,7 @@
           "request": {
             "method": "POST",
             "url": "{{baseUrl}}/posts/{{postId}}/like",
-            "description": "Likes `postId` as the authenticated user. A duplicate like returns a conflict."
+            "description": "Likes `postId` as the authenticated user. A duplicate like returns a conflict.\n\n---\n\n## Types\n### Response\n```typescript\nPostLike\n```\n### Errors\n409 already liked | 401\n"
           }
         },
         {
@@ -594,10 +767,11 @@
           "request": {
             "method": "DELETE",
             "url": "{{baseUrl}}/posts/{{postId}}/like",
-            "description": "Removes the authenticated user like from `postId`. Returns no content when the like is removed."
+            "description": "Removes the authenticated user like from `postId`. Returns no content when the like is removed.\n\n---\n\n## Types\n### Response\n```typescript\n204 empty\n```\n### Errors\n404 like not found | 401\n"
           }
         }
-      ]
+      ],
+      "description": "Post engagement. Entities: `Comment`, `PostLike`."
     },
     {
       "name": "Follows & Blocks",
@@ -607,7 +781,7 @@
           "request": {
             "method": "POST",
             "url": "{{baseUrl}}/users/{{targetUserId}}/follow",
-            "description": "Follows `targetUserId` immediately when the account is `open`. Creates a pending follow request when the account is `closed`. Blocked users cannot follow each other."
+            "description": "Follows `targetUserId` immediately when the account is `open`. Creates a pending follow request when the account is `closed`. Blocked users cannot follow each other.\n\n---\n\n## Types\n### Response\n```typescript\nFollow (open account) | FollowRequest with HTTP 201 (closed account)\n```\n### Errors\n400 self follow | 403 blocked | 404 user | 409 already following or request exists `{ error, request? }` | 429\n"
           },
           "event": [
             {
@@ -627,7 +801,7 @@
           "request": {
             "method": "DELETE",
             "url": "{{baseUrl}}/users/{{targetUserId}}/follow",
-            "description": "Removes an active follow to `targetUserId`. If no follow exists, cancels a pending outgoing follow request to that user."
+            "description": "Removes an active follow to `targetUserId`. If no follow exists, cancels a pending outgoing follow request to that user.\n\n---\n\n## Types\n### Response\n```typescript\n204 empty (unfollow or cancel pending request)\n```\n### Errors\n404 | 401\n"
           }
         },
         {
@@ -635,7 +809,7 @@
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/follow-requests",
-            "description": "Lists pending follow requests received by the authenticated user. Used when the account is closed and other users request to follow."
+            "description": "Lists pending follow requests received by the authenticated user. Used when the account is closed and other users request to follow.\n\n---\n\n## Types\n### Response\n```typescript\nFollowRequest[]\n```\n### Errors\n401\n"
           }
         },
         {
@@ -643,7 +817,7 @@
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/follow-requests/sent",
-            "description": "Lists pending follow requests sent by the authenticated user to closed accounts."
+            "description": "Lists pending follow requests sent by the authenticated user to closed accounts.\n\n---\n\n## Types\n### Response\n```typescript\nFollowRequest[]\n```\n### Errors\n401\n"
           }
         },
         {
@@ -651,7 +825,7 @@
           "request": {
             "method": "POST",
             "url": "{{baseUrl}}/follow-requests/{{followRequestId}}/accept",
-            "description": "Accepts an incoming follow request and creates the follow relationship. Only the target user of a closed account can accept."
+            "description": "Accepts an incoming follow request and creates the follow relationship. Only the target user of a closed account can accept.\n\n---\n\n## Types\n### Response\n```typescript\n{ request: FollowRequest; follow: Follow }\n```\n### Errors\n403 blocked | 404 | 401\n"
           }
         },
         {
@@ -659,7 +833,7 @@
           "request": {
             "method": "POST",
             "url": "{{baseUrl}}/follow-requests/{{followRequestId}}/reject",
-            "description": "Rejects an incoming follow request without creating a follow relationship."
+            "description": "Rejects an incoming follow request without creating a follow relationship.\n\n---\n\n## Types\n### Response\n```typescript\nFollowRequest\n```\n### Errors\n404 | 401\n"
           }
         },
         {
@@ -667,7 +841,7 @@
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/users/{{targetUserId}}/followers",
-            "description": "Lists follow records for users who follow `targetUserId`. Blocked relationships are filtered out.",
+            "description": "Lists follow records for users who follow `targetUserId`. Blocked relationships are filtered out.\n\n---\n\n## Types\n### Response\n```typescript\nFollow[]\n```\n### Errors\nNone\n",
             "auth": {
               "type": "noauth"
             }
@@ -678,7 +852,7 @@
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/users/{{targetUserId}}/following",
-            "description": "Lists follow records for users that `targetUserId` follows. Blocked relationships are filtered out.",
+            "description": "Lists follow records for users that `targetUserId` follows. Blocked relationships are filtered out.\n\n---\n\n## Types\n### Response\n```typescript\nFollow[]\n```\n### Errors\nNone\n",
             "auth": {
               "type": "noauth"
             }
@@ -689,7 +863,7 @@
           "request": {
             "method": "POST",
             "url": "{{baseUrl}}/users/{{targetUserId}}/block",
-            "description": "Blocks `targetUserId` for the authenticated user. Blocking prevents follow and message interactions with that user."
+            "description": "Blocks `targetUserId` for the authenticated user. Blocking prevents follow and message interactions with that user.\n\n---\n\n## Types\n### Response\n```typescript\nUserBlock\n```\n### Errors\n400 self block | 401\n"
           }
         },
         {
@@ -697,7 +871,7 @@
           "request": {
             "method": "DELETE",
             "url": "{{baseUrl}}/users/{{targetUserId}}/block",
-            "description": "Removes the authenticated user block for `targetUserId`."
+            "description": "Removes the authenticated user block for `targetUserId`.\n\n---\n\n## Types\n### Response\n```typescript\n204 empty\n```\n### Errors\n404 | 401\n"
           }
         },
         {
@@ -705,10 +879,11 @@
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/blocks",
-            "description": "Lists users blocked by the authenticated user."
+            "description": "Lists users blocked by the authenticated user.\n\n---\n\n## Types\n### Response\n```typescript\nUserBlock[]\n```\n### Errors\n401\n"
           }
         }
-      ]
+      ],
+      "description": "Instagram-style follows with open/closed accounts. Entities: `Follow`, `FollowRequest`, `UserBlock`."
     },
     {
       "name": "Communities",
@@ -740,7 +915,7 @@
               "raw": "{\n  \"nickname\": \"postman_community\",\n  \"title\": \"Postman Community\",\n  \"access\": \"open\",\n  \"description\": \"Created from Postman\",\n  \"bio\": \"API testing\"\n}"
             },
             "url": "{{baseUrl}}/communities/",
-            "description": "Creates a new community owned by the authenticated user. `access` controls whether joining is immediate (`open`) or request-based (`closed`)."
+            "description": "Creates a new community owned by the authenticated user. `access` controls whether joining is immediate (`open`) or request-based (`closed`).\n\n---\n\n## Types\n### Request body\n```typescript\nCreateCommunityBody\n```\n### Response\n```typescript\nCommunity\n```\n### Errors\n401 validation\n"
           }
         },
         {
@@ -751,7 +926,7 @@
             },
             "method": "GET",
             "url": "{{baseUrl}}/communities/{{communityId}}",
-            "description": "Fetches community details by `communityId`. Returns 404 when the community does not exist."
+            "description": "Fetches community details by `communityId`. Returns 404 when the community does not exist.\n\n---\n\n## Types\n### Response\n```typescript\nCommunity\n```\n### Errors\n404\n"
           }
         },
         {
@@ -769,7 +944,7 @@
               "raw": "{\n  \"title\": \"Updated Community\",\n  \"bio\": \"Updated from Postman\"\n}"
             },
             "url": "{{baseUrl}}/communities/{{communityId}}",
-            "description": "Updates community metadata. Moderators can update basic profile fields; owner-only fields such as nickname or access require owner permissions."
+            "description": "Updates community metadata. Moderators can update basic profile fields; owner-only fields such as nickname or access require owner permissions.\n\n---\n\n## Types\n### Request body\n```typescript\nUpdateCommunityBody\n```\n### Response\n```typescript\nCommunity\n```\n### Errors\n403 forbidden or owner required | 404\n"
           }
         },
         {
@@ -777,7 +952,7 @@
           "request": {
             "method": "POST",
             "url": "{{baseUrl}}/communities/{{communityId}}/join",
-            "description": "Joins an open community or creates a join request for a closed community as the authenticated user."
+            "description": "Joins an open community or creates a join request for a closed community as the authenticated user.\n\n---\n\n## Types\n### Response\n```typescript\n{ member: CommunityMember } for open | { request: CommunityRequest } for closed\n```\n### Errors\n404 | 409 already member | 429\n"
           }
         },
         {
@@ -785,7 +960,7 @@
           "request": {
             "method": "POST",
             "url": "{{baseUrl}}/communities/{{communityId}}/leave",
-            "description": "Leaves `communityId` as the authenticated member. Community owners cannot leave their own community through this endpoint."
+            "description": "Leaves `communityId` as the authenticated member. Community owners cannot leave their own community through this endpoint.\n\n---\n\n## Types\n### Response\n```typescript\n{ success: true }\n```\n### Errors\n400 owner cannot leave | 404\n"
           }
         },
         {
@@ -793,7 +968,7 @@
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/communities/{{communityId}}/posts?lng={{lng}}&lat={{lat}}",
-            "description": "Returns posts from `communityId` that the authenticated user can read from the provided coordinates, including distance-based readability checks."
+            "description": "Returns posts from `communityId` that the authenticated user can read from the provided coordinates, including distance-based readability checks.\n\n---\n\n## Types\n### Query params\n```typescript\nlng, lat\n```\n### Response\n```typescript\nPost[]\n```\n### Errors\n401\n"
           }
         },
         {
@@ -801,7 +976,7 @@
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/communities/{{communityId}}/map-posts",
-            "description": "Returns lightweight map points for posts in `communityId` visible to the authenticated user."
+            "description": "Returns lightweight map points for posts in `communityId` visible to the authenticated user.\n\n---\n\n## Types\n### Response\n```typescript\nMapPoint[]\n```\n### Errors\n401\n"
           }
         },
         {
@@ -809,7 +984,7 @@
           "request": {
             "method": "DELETE",
             "url": "{{baseUrl}}/communities/{{communityId}}/posts/{{postId}}",
-            "description": "Deletes `postId` from `communityId` using community moderation permissions. Intended for moderators or owners."
+            "description": "Deletes `postId` from `communityId` using community moderation permissions. Intended for moderators or owners.\n\n---\n\n## Types\n### Response\n```typescript\n204 empty\n```\n### Errors\n403 | 404\n"
           }
         },
         {
@@ -817,7 +992,7 @@
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/communities/{{communityId}}/requests",
-            "description": "Lists pending join requests for `communityId`. Requires community moderation permissions."
+            "description": "Lists pending join requests for `communityId`. Requires community moderation permissions.\n\n---\n\n## Types\n### Response\n```typescript\nCommunityRequest[]\n```\n### Errors\n403 | 401\n"
           }
         },
         {
@@ -825,7 +1000,7 @@
           "request": {
             "method": "POST",
             "url": "{{baseUrl}}/communities/{{communityId}}/requests/{{communityRequestId}}/accept",
-            "description": "Accepts `communityRequestId` for `communityId` and adds the requester as a community member. Requires moderation permissions."
+            "description": "Accepts `communityRequestId` for `communityId` and adds the requester as a community member. Requires moderation permissions.\n\n---\n\n## Types\n### Response\n```typescript\n{ request: CommunityRequest; member: CommunityMember }\n```\n### Errors\n403 | 404\n"
           }
         },
         {
@@ -833,7 +1008,7 @@
           "request": {
             "method": "POST",
             "url": "{{baseUrl}}/communities/{{communityId}}/requests/{{communityRequestId}}/reject",
-            "description": "Rejects `communityRequestId` for `communityId`. Requires moderation permissions."
+            "description": "Rejects `communityRequestId` for `communityId`. Requires moderation permissions.\n\n---\n\n## Types\n### Response\n```typescript\nCommunityRequest\n```\n### Errors\n403 | 404\n"
           }
         },
         {
@@ -841,7 +1016,7 @@
           "request": {
             "method": "POST",
             "url": "{{baseUrl}}/communities/{{communityId}}/moderators/{{targetUserId}}",
-            "description": "Promotes `targetUserId` to moderator in `communityId`. The target user must already be a community member and the caller must have permission."
+            "description": "Promotes `targetUserId` to moderator in `communityId`. The target user must already be a community member and the caller must have permission.\n\n---\n\n## Types\n### Response\n```typescript\nCommunityMember\n```\n### Errors\n403 | 404\n"
           }
         },
         {
@@ -849,7 +1024,7 @@
           "request": {
             "method": "DELETE",
             "url": "{{baseUrl}}/communities/{{communityId}}/moderators/{{targetUserId}}",
-            "description": "Removes moderator role from `targetUserId` in `communityId`. Requires permission from the community owner or authorized moderator flow."
+            "description": "Removes moderator role from `targetUserId` in `communityId`. Requires permission from the community owner or authorized moderator flow.\n\n---\n\n## Types\n### Response\n```typescript\nCommunityMember\n```\n### Errors\n403 | 404\n"
           }
         },
         {
@@ -867,7 +1042,7 @@
               "raw": "{\n  \"reason\": \"spam\"\n}"
             },
             "url": "{{baseUrl}}/communities/{{communityId}}/bans/{{targetUserId}}",
-            "description": "Bans `targetUserId` from `communityId` with an optional reason. Moderation rules prevent banning the owner and restrict banning moderators."
+            "description": "Bans `targetUserId` from `communityId` with an optional reason. Moderation rules prevent banning the owner and restrict banning moderators.\n\n---\n\n## Types\n### Request body\n```typescript\n{ reason?: string }\n```\n### Response\n```typescript\nCommunityBan\n```\n### Errors\n400 cannot ban owner/moderator | 403\n"
           }
         },
         {
@@ -875,7 +1050,7 @@
           "request": {
             "method": "DELETE",
             "url": "{{baseUrl}}/communities/{{communityId}}/bans/{{targetUserId}}",
-            "description": "Removes the community ban for `targetUserId` in `communityId`."
+            "description": "Removes the community ban for `targetUserId` in `communityId`.\n\n---\n\n## Types\n### Response\n```typescript\n{ success: true }\n```\n### Errors\n403 | 404\n"
           }
         },
         {
@@ -883,7 +1058,7 @@
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/communities/{{communityId}}/bans",
-            "description": "Lists banned users for `communityId`. Requires community moderation permissions."
+            "description": "Lists banned users for `communityId`. Requires community moderation permissions.\n\n---\n\n## Types\n### Response\n```typescript\nCommunityBan[]\n```\n### Errors\n403\n"
           }
         },
         {
@@ -891,10 +1066,11 @@
           "request": {
             "method": "DELETE",
             "url": "{{baseUrl}}/communities/{{communityId}}",
-            "description": "Deletes `communityId`. Only the community owner can delete a community."
+            "description": "Deletes `communityId`. Only the community owner can delete a community.\n\n---\n\n## Types\n### Response\n```typescript\n204 empty\n```\n### Errors\n403 owner only | 404\n"
           }
         }
-      ]
+      ],
+      "description": "Groups with open/closed join. Entities: `Community`, `CommunityMember`, `CommunityRequest`, `CommunityBan`."
     },
     {
       "name": "Messages",
@@ -926,7 +1102,7 @@
               "raw": "{\n  \"type\": \"private\",\n  \"members\": [\"{{targetUserId}}\"]\n}"
             },
             "url": "{{baseUrl}}/conversations",
-            "description": "Creates a private or group conversation. The authenticated user is added to `members` automatically if omitted; blocked users are rejected."
+            "description": "Creates a private or group conversation. The authenticated user is added to `members` automatically if omitted; blocked users are rejected.\n\n---\n\n## Types\n### Request body\n```typescript\nCreateConversationBody\n```\n### Response\n```typescript\nConversation\n```\n### Errors\n403 blocked users | 401\n"
           }
         },
         {
@@ -934,7 +1110,7 @@
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/conversations",
-            "description": "Lists conversations where the authenticated user is a member."
+            "description": "Lists conversations where the authenticated user is a member.\n\n---\n\n## Types\n### Response\n```typescript\nConversation[]\n```\n### Errors\n401\n"
           }
         },
         {
@@ -942,7 +1118,7 @@
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/conversations/{{conversationId}}/messages",
-            "description": "Lists messages for `conversationId` when the authenticated user is a member and the conversation is not blocked."
+            "description": "Lists messages for `conversationId` when the authenticated user is a member and the conversation is not blocked.\n\n---\n\n## Types\n### Response\n```typescript\nMessage[]\n```\n### Errors\n403 blocked | 404 | 401\n"
           }
         },
         {
@@ -960,10 +1136,11 @@
               "raw": "{\n  \"text\": \"Hello from Postman\",\n  \"attachments\": []\n}"
             },
             "url": "{{baseUrl}}/conversations/{{conversationId}}/messages",
-            "description": "Sends a text message with optional attachments to `conversationId` as the authenticated member. Blocked conversations or non-members are rejected."
+            "description": "Sends a text message with optional attachments to `conversationId` as the authenticated member. Blocked conversations or non-members are rejected.\n\n---\n\n## Types\n### Request body\n```typescript\nSendMessageBody\n```\n### Response\n```typescript\nMessage\n```\n### Errors\n403 forbidden or blocked | 404 | 401\n"
           }
         }
-      ]
+      ],
+      "description": "Private/group chat. Entities: `Conversation`, `Message`."
     },
     {
       "name": "Location",
@@ -983,7 +1160,7 @@
               "raw": "{\n  \"lng\": {{lng}},\n  \"lat\": {{lat}}\n}"
             },
             "url": "{{baseUrl}}/location/update",
-            "description": "Updates the authenticated user current coordinates. The API stores fresh location in Redis and syncs to MongoDB with debounce."
+            "description": "Updates the authenticated user current coordinates. The API stores fresh location in Redis and syncs to MongoDB with debounce.\n\n---\n\n## Types\n### Request body\n```typescript\nLocationUpdateBody\n```\n### Response\n```typescript\nUserLocation\n```\n### Errors\n429 | 401\n"
           }
         },
         {
@@ -991,10 +1168,11 @@
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/location/following",
-            "description": "Returns current known locations for users followed by the authenticated user."
+            "description": "Returns current known locations for users followed by the authenticated user.\n\n---\n\n## Types\n### Response\n```typescript\nUserLocation[]\n```\n### Errors\n401\n"
           }
         }
-      ]
+      ],
+      "description": "Live geolocation. Entity: `UserLocation`."
     },
     {
       "name": "WebSocket",
@@ -1004,10 +1182,11 @@
           "request": {
             "method": "GET",
             "url": "{{wsUrl}}/ws?token={{accessToken}}",
-            "description": "WebSocket connection URL for realtime events. Connect with `accessToken`; supports typing events from the client and server-pushed location:update, location:following_updated, message:new, and notification:new events."
+            "description": "WebSocket connection URL for realtime events. Connect with `accessToken`; supports typing events from the client and server-pushed location:update, location:following_updated, message:new, and notification:new events.\n\n---\n\n## Types\n### Response\n```typescript\nWebSocket — see Realtime Types folder and collection description\n```\n### Errors\n4401 unauthorized on bad token\n"
           }
         }
-      ]
+      ],
+      "description": "Realtime events. See `WsEnvelope` in collection description."
     }
   ]
 }

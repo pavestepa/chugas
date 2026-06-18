@@ -1,5 +1,10 @@
 node_modules
+**/node_modules
 dist
 build
 coverage
 bun.lock
+app/ios
+app/android
+app/.expo
+**/.expo
